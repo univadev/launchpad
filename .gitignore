@@ -1,0 +1,9 @@
+node_modules
+.venv
+.next
+dist
+build
+.cache
+.env
+*.log
+.env.local

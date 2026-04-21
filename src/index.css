@@ -1,0 +1,141 @@
+@import url("https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Rubik:ital,wght@0,300..900;1,300..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Roboto", system-ui, sans-serif;
+  }
+
+  p {
+    font-family: "Noto Sans", sans-serif;
+  }
+
+  body {
+    @apply bg-[#0a0a0a] text-zinc-400 antialiased;
+  }
+
+  * {
+    @apply border-white/10;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-full transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-gray-700 text-gray-100 font-semibold rounded-full transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800 font-medium rounded-full transition-colors duration-150;
+  }
+  .input {
+    @apply w-full px-3 py-2 bg-zinc-900 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-150;
+  }
+  .card {
+    /* Use [1.02] inside the brackets for 102% */
+    @apply bg-[#111111] border border-white/10 rounded-xl transition-all duration-300 ease-out hover:border-white/20 hover:z-10;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .tag {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300 border border-gray-700;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #374151 transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #374151;
+    border-radius: 3px;
+  }
+}
+
+/* Markdown styles */
+.prose-dark h1,
+.prose-dark h2,
+.prose-dark h3 {
+  color: #e5e7eb;
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+.prose-dark p {
+  color: #a1a1aa;
+  margin-bottom: 0.75em;
+  line-height: 1.7;
+}
+.prose-dark ul,
+.prose-dark ol {
+  color: #a1a1aa;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+.prose-dark li {
+  margin-bottom: 0.25em;
+}
+.prose-dark code {
+  background: #1f2937;
+  color: #a5b4fc;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.875em;
+  font-family:
+    ui-monospace, SFMono-Regular, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+.prose-dark pre {
+  background: #1f2937;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+}
+.prose-dark pre code {
+  background: none;
+  padding: 0;
+}
+.prose-dark blockquote {
+  border-left: 3px solid #4450ea;
+  padding-left: 1em;
+  color: #9ca3af;
+  font-style: italic;
+}
+.prose-dark a {
+  color: #7b94fb;
+  text-decoration: underline;
+}
+.prose-dark strong {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+.logo {
+  font-family: "Google Sans Code", sans-serif;
+}
