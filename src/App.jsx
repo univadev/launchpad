@@ -14,6 +14,7 @@ import Profile from './pages/Profile'
 import PostDetail from './pages/PostDetail'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
+import Connections from './pages/Connections'
 
 // Wraps protected routes — if logged in but no profile yet, send to onboarding
 function RequireProfile({ children }) {
@@ -85,6 +86,11 @@ function AppRoutes() {
         <Route path="/settings" element={
           <RequireProfile>
             <Settings />
+          </RequireProfile>
+        } />
+        <Route path="/connections" element={
+          <RequireProfile>
+            <Connections />
           </RequireProfile>
         } />
         <Route path="/:username" element={<Profile />} />

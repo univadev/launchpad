@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import {
-  Home, Compass, Bell, Settings, LogOut, User, Zap, Menu, X
+  Home, Compass, Bell, Settings, LogOut, User, Zap, Menu, X, Users
 } from 'lucide-react'
 
 export default function Navbar() {
@@ -18,7 +18,13 @@ export default function Navbar() {
     fetchUnread()
     // Poll every 30s
     const interval = setInterval(fetchUnread, 30000)
-    return () => clearInterval(interval)
+    // Refresh immediately when notifications get marked read
+    const onRead = () => fetchUnread()
+    window.addEventListener('notifications:read', onRead)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('notifications:read', onRead)
+    }
   }, [user])
 
   async function fetchUnread() {
@@ -39,6 +45,7 @@ export default function Navbar() {
   const navLinks = [
     { to: '/feed', icon: Home, label: 'Feed' },
     { to: '/discover', icon: Compass, label: 'Discover' },
+    { to: '/connections', icon: Users, label: 'Connections' },
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
   ]
 

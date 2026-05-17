@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { FIELDS_OF_INTEREST, COUNTRIES } from '../lib/utils'
-import { Save, Upload, AlertCircle, CheckCircle2, Camera, Trash2 } from 'lucide-react'
+import { Save, Upload, AlertCircle, CheckCircle2, Camera, Trash2, Linkedin, Github, MessageCircle } from 'lucide-react'
 
 const INTEREST_OPTIONS = [
   'Algorithms', 'Machine Learning', 'Web Dev', 'Mobile Dev', 'Robotics',
@@ -27,6 +27,9 @@ export default function Settings() {
     interests: profile?.interests || [],
     goal: profile?.goal || '',
     country: profile?.country || '',
+    linkedin_url: profile?.linkedin_url || '',
+    discord_username: profile?.discord_username || '',
+    github_url: profile?.github_url || '',
   })
 
   const [photoFile, setPhotoFile] = useState(null)
@@ -108,6 +111,9 @@ export default function Settings() {
           interests: form.interests,
           goal: form.goal.trim() || null,
           country: form.country || null,
+          linkedin_url: form.linkedin_url.trim() || null,
+          discord_username: form.discord_username.trim() || null,
+          github_url: form.github_url.trim() || null,
           profile_photo_url: photoUrl,
         })
         .eq('id', user.id)
@@ -135,20 +141,21 @@ export default function Settings() {
           <p className="text-sm text-gray-400">Manage your profile</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {error && (
-            <div className="flex items-center gap-2.5 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-300 text-sm">
-              <AlertCircle size={16} className="shrink-0" />
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-3 bg-red-900/90 border border-red-800/70 rounded-lg text-red-100 text-sm shadow-lg backdrop-blur">
+            <AlertCircle size={16} className="shrink-0" />
+            {error}
+          </div>
+        )}
 
-          {success && (
-            <div className="flex items-center gap-2.5 p-3 bg-green-900/30 border border-green-800/50 rounded-lg text-green-300 text-sm">
-              <CheckCircle2 size={16} className="shrink-0" />
-              Profile updated!
-            </div>
-          )}
+        {success && (
+          <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-3 bg-green-900/90 border border-green-800/70 rounded-lg text-green-100 text-sm shadow-lg backdrop-blur">
+            <CheckCircle2 size={16} className="shrink-0" />
+            Profile updated!
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
           {/* Photo */}
           <div className="card p-5">
@@ -278,6 +285,50 @@ export default function Settings() {
                   {interest}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Social accounts */}
+          <div className="card p-5">
+            <h2 className="font-semibold text-white mb-1">Social accounts</h2>
+            <p className="text-xs text-gray-500 mb-3">Only people you've connected with can see these.</p>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <Linkedin size={14} /> LinkedIn
+                </label>
+                <input
+                  type="url"
+                  className="input"
+                  value={form.linkedin_url}
+                  onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))}
+                  placeholder="https://linkedin.com/in/your-handle"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <Github size={14} /> GitHub
+                </label>
+                <input
+                  type="url"
+                  className="input"
+                  value={form.github_url}
+                  onChange={e => setForm(f => ({ ...f, github_url: e.target.value }))}
+                  placeholder="https://github.com/your-handle"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <MessageCircle size={14} /> Discord
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  value={form.discord_username}
+                  onChange={e => setForm(f => ({ ...f, discord_username: e.target.value }))}
+                  placeholder="your_discord_username"
+                />
+              </div>
             </div>
           </div>
 

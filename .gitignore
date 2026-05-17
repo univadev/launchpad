@@ -7,3 +7,5 @@ build
 .env
 *.log
 .env.local
+# Local Netlify folder
+.netlify

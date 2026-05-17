@@ -168,7 +168,13 @@ export default function Discover() {
 
     if (filters.field) query = query.eq('field_of_interest', filters.field)
     if (filters.country) query = query.eq('country', filters.country)
-    if (search) query = query.ilike('full_name', `%${search}%`)
+    if (search) {
+      // strip @ prefix and any PostgREST `or()` delimiters/wildcards that would break parsing
+      const s = search.replace(/^@/, '').replace(/[,()*]/g, '')
+      if (s) {
+        query = query.or(`full_name.ilike.%${s}%,username.ilike.%${s}%`)
+      }
+    }
 
     const { data } = await query
     setBuilders(data || [])
@@ -237,7 +243,7 @@ export default function Discover() {
             <input
               type="text"
               className="input pl-9"
-              placeholder={activeTab === 'Builders' ? 'Search builders...' : 'Search projects...'}
+              placeholder={activeTab === 'Builders' ? 'Search builders by name or @username...' : 'Search projects...'}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
