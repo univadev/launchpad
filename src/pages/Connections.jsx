@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { normalizeUrl } from '../lib/utils'
 import {
-  Users, Search, X, Linkedin, Github, MessageCircle, MapPin, Flame, UserCheck, Clock, Inbox
+  Users, Search, X, Linkedin, Github, MessageCircle, MapPin, Flame, UserCheck, Clock, Inbox, AlertCircle
 } from 'lucide-react'
 
 const TABS = ['Connected', 'Pending']
@@ -17,6 +18,7 @@ export default function Connections() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     if (user) fetchAll()
@@ -59,29 +61,45 @@ export default function Connections() {
 
   async function accept(connId) {
     setBusyId(connId)
-    await supabase
+    setActionError('')
+    const { error } = await supabase
       .from('connections')
       .update({ status: 'accepted', responded_at: new Date().toISOString() })
       .eq('id', connId)
+    if (error) {
+      console.error('accept connection error:', error)
+      setActionError(error.message || 'Failed to accept request')
+    }
     setBusyId(null)
-    fetchAll()
+    await fetchAll()
   }
 
   async function decline(connId) {
     setBusyId(connId)
-    await supabase.from('connections').delete().eq('id', connId)
+    setActionError('')
+    const { error } = await supabase.from('connections').delete().eq('id', connId)
+    if (error) {
+      console.error('decline connection error:', error)
+      setActionError(error.message || 'Failed to decline request')
+    }
     setBusyId(null)
-    fetchAll()
+    await fetchAll()
   }
 
   async function cancel(connId) {
     setBusyId(connId)
-    await supabase.from('connections').delete().eq('id', connId)
+    setActionError('')
+    const { error } = await supabase.from('connections').delete().eq('id', connId)
+    if (error) {
+      console.error('cancel connection error:', error)
+      setActionError(error.message || 'Failed to cancel request')
+    }
     setBusyId(null)
-    fetchAll()
+    await fetchAll()
   }
 
-  const q = search.trim().toLowerCase()
+  // Strip leading @ so "@maya" matches username "maya"
+  const q = search.trim().toLowerCase().replace(/^@/, '')
   const matches = (p) =>
     !q ||
     p.full_name?.toLowerCase().includes(q) ||
@@ -124,6 +142,13 @@ export default function Connections() {
             </button>
           )}
         </div>
+
+        {actionError && (
+          <div className="mb-4 flex items-center gap-2 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-300 text-sm">
+            <AlertCircle size={16} className="shrink-0" />
+            {actionError}
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-zinc-900 border border-gray-800 rounded-xl p-1">
@@ -265,12 +290,12 @@ function ConnectionCard({ p, showSocials }) {
       {showSocials && (p.linkedin_url || p.github_url || p.discord_username) && (
         <div className="flex flex-col gap-1.5 pt-3 border-t border-gray-800">
           {p.linkedin_url && (
-            <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-brand-300 hover:text-brand-200 truncate">
+            <a href={normalizeUrl(p.linkedin_url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-brand-300 hover:text-brand-200 truncate">
               <Linkedin size={13} /> <span className="truncate">{p.linkedin_url.replace(/^https?:\/\//, '')}</span>
             </a>
           )}
           {p.github_url && (
-            <a href={p.github_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-brand-300 hover:text-brand-200 truncate">
+            <a href={normalizeUrl(p.github_url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-brand-300 hover:text-brand-200 truncate">
               <Github size={13} /> <span className="truncate">{p.github_url.replace(/^https?:\/\//, '')}</span>
             </a>
           )}

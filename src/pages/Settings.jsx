@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { FIELDS_OF_INTEREST, COUNTRIES } from '../lib/utils'
+import { FIELDS_OF_INTEREST, COUNTRIES, normalizeUrl } from '../lib/utils'
 import { Save, Upload, AlertCircle, CheckCircle2, Camera, Trash2, Linkedin, Github, MessageCircle } from 'lucide-react'
 
 const INTEREST_OPTIONS = [
@@ -111,9 +111,9 @@ export default function Settings() {
           interests: form.interests,
           goal: form.goal.trim() || null,
           country: form.country || null,
-          linkedin_url: form.linkedin_url.trim() || null,
+          linkedin_url: normalizeUrl(form.linkedin_url),
           discord_username: form.discord_username.trim() || null,
-          github_url: form.github_url.trim() || null,
+          github_url: normalizeUrl(form.github_url),
           profile_photo_url: photoUrl,
         })
         .eq('id', user.id)

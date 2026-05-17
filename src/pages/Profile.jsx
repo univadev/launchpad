@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import ProjectCard from '../components/ProjectCard'
-import { formatDate, timeAgo, REACTIONS } from '../lib/utils'
+import { formatDate, timeAgo, REACTIONS, normalizeUrl } from '../lib/utils'
 import {
   MapPin, GraduationCap, Calendar, Zap, Share2, Printer,
   ExternalLink, Flame, BarChart3, Trophy, QrCode, Download,
@@ -369,12 +369,12 @@ export default function Profile() {
             </h2>
             <div className="flex flex-col gap-2">
               {profile.linkedin_url && (
-                <a href={profile.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-brand-300 hover:text-brand-200">
+                <a href={normalizeUrl(profile.linkedin_url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-brand-300 hover:text-brand-200">
                   <Linkedin size={15} /> {profile.linkedin_url}
                 </a>
               )}
               {profile.github_url && (
-                <a href={profile.github_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-brand-300 hover:text-brand-200">
+                <a href={normalizeUrl(profile.github_url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-brand-300 hover:text-brand-200">
                   <Github size={15} /> {profile.github_url}
                 </a>
               )}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { FIELDS_OF_INTEREST, COUNTRIES } from '../lib/utils'
+import { FIELDS_OF_INTEREST, COUNTRIES, normalizeUrl } from '../lib/utils'
 import { ArrowRight, ArrowLeft, Check, Sparkles, Lightbulb, Linkedin, Github, MessageCircle } from 'lucide-react'
 
 const GRADUATION_YEARS = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i)
@@ -79,8 +79,8 @@ export default function Onboarding() {
         interests: form.interests,
         goal: form.goal.trim(),
         country: form.country || null,
-        linkedin_url: form.linkedin_url.trim() || null,
-        github_url: form.github_url.trim() || null,
+        linkedin_url: normalizeUrl(form.linkedin_url),
+        github_url: normalizeUrl(form.github_url),
         discord_username: form.discord_username.trim() || null,
         current_streak: 0,
         last_post_date: null,
