@@ -3,15 +3,17 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { timeAgo } from '../lib/utils'
-import { Bell, CheckCheck, MessageSquare, Zap, Star } from 'lucide-react'
+import { Bell, CheckCheck, MessageSquare, Zap, Star, UserPlus, UserCheck, X } from 'lucide-react'
 
 const NOTIF_ICONS = {
   reaction: { icon: Star, color: 'text-yellow-400', bg: 'bg-yellow-900/20' },
   comment: { icon: MessageSquare, color: 'text-brand-400', bg: 'bg-brand-900/20' },
   mention: { icon: Zap, color: 'text-accent-400', bg: 'bg-accent-900/20' },
+  connection_request: { icon: UserPlus, color: 'text-brand-400', bg: 'bg-brand-900/20' },
+  connection_accepted: { icon: UserCheck, color: 'text-green-400', bg: 'bg-green-900/20' },
 }
 
-function NotifItem({ notif, onRead }) {
+function NotifItem({ notif, onRead, onRespond, respondingId }) {
   const { icon: Icon, color, bg } = NOTIF_ICONS[notif.type] || NOTIF_ICONS.reaction
   const content = notif.content || {}
 
@@ -25,10 +27,24 @@ function NotifItem({ notif, onRead }) {
     if (notif.type === 'mention') {
       return `You were mentioned in a comment`
     }
+    if (notif.type === 'connection_request') {
+      const name = content.requester_name || content.requester_username || 'Someone'
+      return `${name} wants to connect with you`
+    }
+    if (notif.type === 'connection_accepted') {
+      return `Your connection request was accepted`
+    }
     return 'New notification'
   }
 
-  const link = content.project_id ? `/post/${content.project_id}` : '#'
+  const link = content.project_id
+    ? `/post/${content.project_id}`
+    : content.requester_username
+      ? `/${content.requester_username}`
+      : '#'
+
+  const isPendingRequest = notif.type === 'connection_request' && content.connection_id && !content.resolved
+  const responding = respondingId === notif.id
 
   return (
     <div
@@ -51,7 +67,26 @@ function NotifItem({ notif, onRead }) {
       {!notif.read && (
         <div className="w-2 h-2 rounded-full bg-brand-500 mt-1.5 shrink-0" />
       )}
-      {link !== '#' && (
+      {isPendingRequest ? (
+        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+          <button
+            onClick={() => onRespond(notif, true)}
+            disabled={responding}
+            className="btn-primary text-xs py-1 px-2"
+          >
+            <UserCheck size={12} />
+            Accept
+          </button>
+          <button
+            onClick={() => onRespond(notif, false)}
+            disabled={responding}
+            className="btn-ghost text-xs py-1 px-2"
+          >
+            <X size={12} />
+            Decline
+          </button>
+        </div>
+      ) : link !== '#' && (
         <Link
           to={link}
           onClick={e => e.stopPropagation()}
@@ -68,6 +103,7 @@ export default function Notifications() {
   const { user } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [respondingId, setRespondingId] = useState(null)
 
   useEffect(() => {
     fetchNotifications()
@@ -86,16 +122,50 @@ export default function Notifications() {
 
     setNotifications(data || [])
     setLoading(false)
+
+    // Auto-clear the unread badge as soon as the user opens this page.
+    // We keep the in-memory `read: false` so "New" still highlights
+    // what was unread at the moment of opening.
+    const unreadIds = (data || []).filter(n => !n.read).map(n => n.id)
+    if (unreadIds.length > 0) {
+      await supabase.from('notifications').update({ read: true }).in('id', unreadIds)
+      window.dispatchEvent(new Event('notifications:read'))
+    }
   }
 
   async function markRead(id) {
     await supabase.from('notifications').update({ read: true }).eq('id', id)
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    window.dispatchEvent(new Event('notifications:read'))
+  }
+
+  async function respondToConnection(notif, accept) {
+    const connId = notif.content?.connection_id
+    if (!connId) return
+    setRespondingId(notif.id)
+    if (accept) {
+      await supabase
+        .from('connections')
+        .update({ status: 'accepted', responded_at: new Date().toISOString() })
+        .eq('id', connId)
+    } else {
+      await supabase.from('connections').delete().eq('id', connId)
+    }
+    const newContent = { ...(notif.content || {}), resolved: true, accepted: accept }
+    await supabase
+      .from('notifications')
+      .update({ read: true, content: newContent })
+      .eq('id', notif.id)
+    setNotifications(prev => prev.map(n =>
+      n.id === notif.id ? { ...n, read: true, content: newContent } : n
+    ))
+    setRespondingId(null)
   }
 
   async function markAllRead() {
     await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false)
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    window.dispatchEvent(new Event('notifications:read'))
   }
 
   const unreadCount = notifications.filter(n => !n.read).length
@@ -153,7 +223,7 @@ export default function Notifications() {
               <>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">New</p>
                 {notifications.filter(n => !n.read).map(n => (
-                  <NotifItem key={n.id} notif={n} onRead={markRead} />
+                  <NotifItem key={n.id} notif={n} onRead={markRead} onRespond={respondToConnection} respondingId={respondingId} />
                 ))}
               </>
             )}
@@ -162,7 +232,7 @@ export default function Notifications() {
               <>
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide px-1 mt-2">Earlier</p>
                 {notifications.filter(n => n.read).map(n => (
-                  <NotifItem key={n.id} notif={n} onRead={markRead} />
+                  <NotifItem key={n.id} notif={n} onRead={markRead} onRespond={respondToConnection} respondingId={respondingId} />
                 ))}
               </>
             )}

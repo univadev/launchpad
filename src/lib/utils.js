@@ -29,6 +29,17 @@ export function truncate(str, n) {
   return str.length > n ? str.substring(0, n - 1) + "…" : str;
 }
 
+// Ensure a user-entered URL has a protocol. Returns null for empty input.
+// Accepts "linkedin.com/in/foo" → "https://linkedin.com/in/foo"
+// Leaves "https://..." and "http://..." untouched.
+export function normalizeUrl(value) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 // Streak update logic
 export function calculateStreak(lastPostDate, currentStreak) {
   if (!lastPostDate) return { newStreak: 1 };

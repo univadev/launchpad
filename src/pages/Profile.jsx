@@ -3,10 +3,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import ProjectCard from '../components/ProjectCard'
-import { formatDate, timeAgo, REACTIONS } from '../lib/utils'
+import { formatDate, timeAgo, REACTIONS, normalizeUrl } from '../lib/utils'
 import {
   MapPin, GraduationCap, Calendar, Zap, Share2, Printer,
-  ExternalLink, Flame, BarChart3, Trophy, QrCode, Download
+  ExternalLink, Flame, BarChart3, Trophy, QrCode, Download,
+  UserPlus, UserCheck, Clock, X, Linkedin, Github, MessageCircle, Users
 } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 
@@ -34,6 +35,11 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [showPrintPreview, setShowPrintPreview] = useState(false)
+  const [connectionCount, setConnectionCount] = useState(0)
+  // { status: 'none'|'pending_outgoing'|'pending_incoming'|'accepted', id?: string }
+  const [connection, setConnection] = useState({ status: 'none' })
+  const [connBusy, setConnBusy] = useState(false)
+  const [connError, setConnError] = useState('')
 
   const cleanUsername = username?.replace(/^@/, '')
 
@@ -95,7 +101,102 @@ export default function Profile() {
     }, 0)
     setTotalReactions(total)
 
+    // Connection count (accepted, either direction) — public
+    const { count: connCount } = await supabase
+      .from('connections')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${profileData.id},recipient_id.eq.${profileData.id}`)
+    setConnectionCount(connCount || 0)
+
+    // Viewer's relationship with this profile
+    if (user && user.id !== profileData.id) {
+      const { data: connRow } = await supabase
+        .from('connections')
+        .select('id, requester_id, recipient_id, status')
+        .or(
+          `and(requester_id.eq.${user.id},recipient_id.eq.${profileData.id}),` +
+          `and(requester_id.eq.${profileData.id},recipient_id.eq.${user.id})`
+        )
+        .maybeSingle()
+
+      if (connRow) {
+        if (connRow.status === 'accepted') {
+          setConnection({ status: 'accepted', id: connRow.id })
+        } else if (connRow.status === 'pending') {
+          setConnection({
+            status: connRow.requester_id === user.id ? 'pending_outgoing' : 'pending_incoming',
+            id: connRow.id,
+          })
+        } else {
+          setConnection({ status: 'none' })
+        }
+      } else {
+        setConnection({ status: 'none' })
+      }
+    }
+
     setLoading(false)
+  }
+
+  async function sendConnectionRequest() {
+    if (!user || !profile) return
+    setConnBusy(true)
+    setConnError('')
+    const { data, error } = await supabase
+      .from('connections')
+      .insert({ requester_id: user.id, recipient_id: profile.id, status: 'pending' })
+      .select('id')
+      .single()
+    if (error) {
+      console.error('connect insert error:', error)
+      setConnError(error.message || 'Failed to send request')
+    } else if (data) {
+      setConnection({ status: 'pending_outgoing', id: data.id })
+    }
+    setConnBusy(false)
+  }
+
+  async function cancelConnectionRequest() {
+    if (!connection.id) return
+    setConnBusy(true)
+    setConnError('')
+    const { error } = await supabase.from('connections').delete().eq('id', connection.id)
+    if (error) {
+      console.error('connect cancel error:', error)
+      setConnError(error.message || 'Failed to cancel')
+    } else {
+      setConnection({ status: 'none' })
+    }
+    setConnBusy(false)
+  }
+
+  async function respondToRequest(accept) {
+    if (!connection.id) return
+    setConnBusy(true)
+    setConnError('')
+    if (accept) {
+      const { error } = await supabase
+        .from('connections')
+        .update({ status: 'accepted', responded_at: new Date().toISOString() })
+        .eq('id', connection.id)
+      if (error) {
+        console.error('connect accept error:', error)
+        setConnError(error.message || 'Failed to accept')
+      } else {
+        setConnection({ status: 'accepted', id: connection.id })
+        setConnectionCount(c => c + 1)
+      }
+    } else {
+      const { error } = await supabase.from('connections').delete().eq('id', connection.id)
+      if (error) {
+        console.error('connect decline error:', error)
+        setConnError(error.message || 'Failed to decline')
+      } else {
+        setConnection({ status: 'none' })
+      }
+    }
+    setConnBusy(false)
   }
 
   if (loading) return (
@@ -145,10 +246,46 @@ export default function Profile() {
                   <h1 className="text-2xl font-bold text-white">{profile.full_name}</h1>
                   <p className="text-gray-400">@{profile.username}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {isOwn && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isOwn ? (
                     <Link to="/settings" className="btn-secondary text-sm py-1.5">Edit profile</Link>
-                  )}
+                  ) : user ? (
+                    <>
+                      {connection.status === 'none' && (
+                        <button onClick={sendConnectionRequest} disabled={connBusy} className="btn-primary text-sm py-1.5">
+                          <UserPlus size={15} />
+                          Connect
+                        </button>
+                      )}
+                      {connection.status === 'pending_outgoing' && (
+                        <button onClick={cancelConnectionRequest} disabled={connBusy} className="btn-secondary text-sm py-1.5">
+                          <Clock size={15} />
+                          Pending — cancel
+                        </button>
+                      )}
+                      {connection.status === 'pending_incoming' && (
+                        <>
+                          <button onClick={() => respondToRequest(true)} disabled={connBusy} className="btn-primary text-sm py-1.5">
+                            <UserCheck size={15} />
+                            Accept
+                          </button>
+                          <button onClick={() => respondToRequest(false)} disabled={connBusy} className="btn-ghost text-sm py-1.5">
+                            <X size={15} />
+                            Decline
+                          </button>
+                        </>
+                      )}
+                      {connection.status === 'accepted' && (
+                        <span className="btn-secondary text-sm py-1.5 cursor-default" title="You're connected">
+                          <UserCheck size={15} />
+                          Connected
+                        </span>
+                      )}
+                      {connError && (
+                        <span className="text-xs text-red-400 basis-full">{connError}</span>
+                      )}
+                    </>
+                  ) : null}
                   <button
                     onClick={handlePrint}
                     className="btn-ghost text-sm py-1.5"
@@ -210,8 +347,8 @@ export default function Profile() {
             {[
               { label: 'Projects', value: projects.length, icon: BarChart3 },
               { label: 'Reactions', value: totalReactions, icon: Trophy },
+              { label: 'Connections', value: connectionCount, icon: Users },
               { label: 'Day streak', value: profile.current_streak || 0, icon: Flame },
-              { label: 'Member since', value: formatDate(profile.created_at).replace(',', '\n'), icon: Calendar },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="text-center p-3 bg-gray-800/20 rounded-xl">
                 <Icon size={16} className="mx-auto mb-1 text-gray-500" />
@@ -221,6 +358,34 @@ export default function Profile() {
             ))}
           </div>
         </div>
+
+        {/* Socials — visible to self, or to connected viewers */}
+        {(isOwn || connection.status === 'accepted') && (profile.linkedin_url || profile.github_url || profile.discord_username) && (
+          <div className="card p-5 mb-6">
+            <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
+              <Users size={16} />
+              Socials
+              {!isOwn && <span className="text-xs font-normal text-gray-500">— visible because you're connected</span>}
+            </h2>
+            <div className="flex flex-col gap-2">
+              {profile.linkedin_url && (
+                <a href={normalizeUrl(profile.linkedin_url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-brand-300 hover:text-brand-200">
+                  <Linkedin size={15} /> {profile.linkedin_url}
+                </a>
+              )}
+              {profile.github_url && (
+                <a href={normalizeUrl(profile.github_url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-brand-300 hover:text-brand-200">
+                  <Github size={15} /> {profile.github_url}
+                </a>
+              )}
+              {profile.discord_username && (
+                <span className="flex items-center gap-2 text-sm text-gray-300">
+                  <MessageCircle size={15} /> {profile.discord_username}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Projects */}
         <div>

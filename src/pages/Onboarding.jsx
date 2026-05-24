@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { FIELDS_OF_INTEREST, COUNTRIES } from '../lib/utils'
-import { ArrowRight, ArrowLeft, Check, Sparkles, Lightbulb } from 'lucide-react'
+import { FIELDS_OF_INTEREST, COUNTRIES, normalizeUrl } from '../lib/utils'
+import { ArrowRight, ArrowLeft, Check, Sparkles, Lightbulb, Linkedin, Github, MessageCircle } from 'lucide-react'
 
 const GRADUATION_YEARS = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i)
 
@@ -31,12 +31,16 @@ export default function Onboarding() {
     interests: [],
     goal: '',
     country: '',
+    linkedin_url: '',
+    github_url: '',
+    discord_username: '',
   })
 
   const steps = [
     { title: 'What should we call you?', subtitle: 'Your name and where you\'re studying' },
     { title: 'What drives you?', subtitle: 'Your field and what you\'re into' },
     { title: 'What are you working toward?', subtitle: 'Your goal — be honest, be bold' },
+    { title: 'Connect your socials', subtitle: 'Visible only to people you\'ve connected with' },
   ]
 
   function toggleInterest(interest) {
@@ -52,6 +56,7 @@ export default function Onboarding() {
     if (step === 0) return form.full_name.trim().length >= 2 && form.graduation_year
     if (step === 1) return form.field_of_interest && form.interests.length >= 1
     if (step === 2) return form.goal.trim().length >= 10
+    if (step === 3) return true
     return false
   }
 
@@ -74,6 +79,9 @@ export default function Onboarding() {
         interests: form.interests,
         goal: form.goal.trim(),
         country: form.country || null,
+        linkedin_url: normalizeUrl(form.linkedin_url),
+        github_url: normalizeUrl(form.github_url),
+        discord_username: form.discord_username.trim() || null,
         current_streak: 0,
         last_post_date: null,
       }
@@ -98,7 +106,7 @@ export default function Onboarding() {
   }
 
   function handleNext() {
-    if (step < 2) setStep(s => s + 1)
+    if (step < 3) setStep(s => s + 1)
     else handleSubmit()
   }
 
@@ -257,6 +265,51 @@ export default function Onboarding() {
               </div>
             </div>
           )}
+
+          {step === 3 && (
+            <div className="flex flex-col gap-4">
+              <p className="text-xs text-gray-500 -mt-1">
+                All optional. These stay hidden from strangers — only people you've accepted a connection with will see them.
+              </p>
+              <div>
+                <label className="text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <Linkedin size={14} /> LinkedIn
+                </label>
+                <input
+                  type="url"
+                  className="input"
+                  placeholder="https://linkedin.com/in/your-handle"
+                  value={form.linkedin_url}
+                  onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <Github size={14} /> GitHub
+                </label>
+                <input
+                  type="url"
+                  className="input"
+                  placeholder="https://github.com/your-handle"
+                  value={form.github_url}
+                  onChange={e => setForm(f => ({ ...f, github_url: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <MessageCircle size={14} /> Discord
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="your_discord_username"
+                  value={form.discord_username}
+                  onChange={e => setForm(f => ({ ...f, discord_username: e.target.value }))}
+                />
+              </div>
+              <p className="text-xs text-gray-600">You can edit or add these anytime from Settings.</p>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -280,7 +333,7 @@ export default function Onboarding() {
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin-fast" />
                 Setting up...
               </span>
-            ) : step === 2 ? (
+            ) : step === 3 ? (
               <span className="flex items-center gap-2">Launch my profile <Check size={16} /></span>
             ) : (
               <span className="flex items-center gap-2">Next <ArrowRight size={16} /></span>
