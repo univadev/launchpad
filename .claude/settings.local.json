@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(VITE_CLERK_PUBLISHABLE_KEY=pk_test_stub npm run build)"
+    ]
+  }
+}
