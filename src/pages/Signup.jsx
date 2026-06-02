@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { SignUp } from '@clerk/clerk-react'
+import { SignUp } from '@clerk/react'
 
 const appearance = {
   elements: {
