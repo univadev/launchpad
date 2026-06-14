@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { REACTIONS, timeAgo, formatDate } from '../lib/utils'
+import { timeAgo, formatDate } from '../lib/utils'
 import ReactMarkdown from 'react-markdown'
-import { ArrowLeft, ExternalLink, MessageSquare, Send, Trash2, Reply, Clock, AlertCircle, Flame, Lightbulb, Hand, Rocket } from 'lucide-react'
+import { ArrowLeft, ExternalLink, MessageSquare, Send, Trash2, Reply, Clock, AlertCircle, ThumbsUp, X, Eye } from 'lucide-react'
+import { recordView } from '../lib/viewTracker'
 
 function CommentItem({ comment, depth = 0, onReply, onDelete, currentUserId }) {
   const author = comment.users || {}
@@ -68,20 +69,28 @@ export default function PostDetail() {
 
   const [project, setProject] = useState(null)
   const [comments, setComments] = useState([])
-  const [reactionCounts, setReactionCounts] = useState({ fire: 0, idea: 0, clap: 0, rocket: 0 })
-  const [userReaction, setUserReaction] = useState(null)
+  const [upvoteCount, setUpvoteCount] = useState(0)
+  const [hasUpvoted, setHasUpvoted] = useState(false)
+  const [viewCount, setViewCount] = useState(0)
   const [commentText, setCommentText] = useState('')
   const [replyTo, setReplyTo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [commentLoading, setCommentLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const reactionIcons = { fire: Flame, idea: Lightbulb, clap: Hand, rocket: Rocket }
-
   useEffect(() => {
     fetchProject()
     fetchComments()
   }, [id])
+
+  useEffect(() => {
+    if (!project?.id) return
+    const timer = setTimeout(async () => {
+      const recorded = await recordView(project.id, user?.id)
+      if (recorded) setViewCount(c => c + 1)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [project?.id])
 
   async function fetchProject() {
     setLoading(true)
@@ -99,15 +108,15 @@ export default function PostDetail() {
 
     setProject(data)
 
-    // Fetch reactions
-    const { data: reactions } = await supabase.from('reactions').select('reaction_type, user_id').eq('project_id', id)
-    const counts = { fire: 0, idea: 0, clap: 0, rocket: 0 }
-    reactions?.forEach(r => { if (counts[r.reaction_type] !== undefined) counts[r.reaction_type]++ })
-    setReactionCounts(counts)
+    const [{ data: reactions }, { count: views }] = await Promise.all([
+      supabase.from('reactions').select('user_id').eq('project_id', id),
+      supabase.from('project_views').select('*', { count: 'exact', head: true }).eq('project_id', id),
+    ])
 
+    setUpvoteCount(reactions?.length || 0)
+    setViewCount(views || 0)
     if (user) {
-      const mine = reactions?.find(r => r.user_id === user.id)
-      setUserReaction(mine?.reaction_type || null)
+      setHasUpvoted(!!reactions?.find(r => r.user_id === user.id))
     }
 
     setLoading(false)
@@ -130,27 +139,18 @@ export default function PostDetail() {
     setComments(threaded)
   }
 
-  async function handleReaction(type) {
+  async function handleReaction() {
     if (!user) return
 
-    const prev = userReaction
-    // Optimistic
-    setReactionCounts(c => {
-      const n = { ...c }
-      if (prev === type) { n[type] = Math.max(0, n[type] - 1) }
-      else {
-        if (prev) n[prev] = Math.max(0, n[prev] - 1)
-        n[type] = (n[type] || 0) + 1
-      }
-      return n
-    })
-    setUserReaction(prev === type ? null : type)
-
-    if (prev === type) {
+    if (hasUpvoted) {
+      setUpvoteCount(c => Math.max(0, c - 1))
+      setHasUpvoted(false)
       await supabase.from('reactions').delete().eq('project_id', id).eq('user_id', user.id)
     } else {
+      setUpvoteCount(c => c + 1)
+      setHasUpvoted(true)
       await supabase.from('reactions').upsert(
-        { project_id: id, user_id: user.id, reaction_type: type },
+        { project_id: id, user_id: user.id, reaction_type: 'fire' },
         { onConflict: 'project_id,user_id' }
       )
     }
@@ -307,24 +307,22 @@ export default function PostDetail() {
 
             {/* Reactions */}
             <div className="flex items-center gap-2 pt-4 border-t border-white/10">
-              {Object.entries(REACTIONS).map(([type, { label }]) => {
-                const Icon = reactionIcons[type]
-                return (
-                  <button
-                    key={type}
-                    onClick={() => handleReaction(type)}
-                    title={label}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                      userReaction === type
-                        ? 'bg-brand-700/40 text-brand-300 border border-brand-600/40 scale-105'
-                        : 'bg-[#111111] text-zinc-400 hover:bg-[#1a1a1a] hover:text-zinc-200 border border-transparent'
-                    } ${!user ? 'cursor-default' : 'cursor-pointer'}`}
-                  >
-                    <Icon size={16} />
-                    <span>{reactionCounts[type] > 0 ? reactionCounts[type] : label}</span>
-                  </button>
-                )
-              })}
+              <button
+                onClick={handleReaction}
+                title="Upvote"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                  hasUpvoted
+                    ? 'bg-brand-700/40 text-brand-300 border border-brand-600/40 scale-105'
+                    : 'bg-[#111111] text-zinc-400 hover:bg-[#1a1a1a] hover:text-zinc-200 border border-transparent'
+                } ${!user ? 'cursor-default' : 'cursor-pointer'}`}
+              >
+                <ThumbsUp size={16} />
+                <span>{upvoteCount > 0 ? upvoteCount : 'Upvote'}</span>
+              </button>
+              <span className="flex items-center gap-1.5 text-sm text-zinc-500 ml-auto">
+                <Eye size={14} />
+                {viewCount} {viewCount === 1 ? 'view' : 'views'}
+              </span>
             </div>
           </div>
         </div>

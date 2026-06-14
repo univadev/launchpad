@@ -1,18 +1,45 @@
+import { useRef, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageSquare, ExternalLink, Clock, Flame, Lightbulb, Hand, Rocket } from 'lucide-react'
-import { REACTIONS, timeAgo } from '../lib/utils'
+import { MessageSquare, ExternalLink, Clock, ThumbsUp, Eye } from 'lucide-react'
+import { timeAgo } from '../lib/utils'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { recordView } from '../lib/viewTracker'
 
 export default function ProjectCard({ project, onReactionToggle }) {
   const { user } = useAuth()
+  const cardRef = useRef(null)
 
   const author = project.users || project.author
   const reactionCounts = project.reaction_counts || {}
   const userReaction = project.user_reaction || null
   const commentCount = project.comment_count || 0
+  const [viewCount, setViewCount] = useState(project.view_count || 0)
 
-  const reactionIcons = { fire: Flame, idea: Lightbulb, clap: Hand, rocket: Rocket }
+  const totalUpvotes = Object.values(reactionCounts).reduce((a, b) => a + b, 0)
+  const isUpvoted = userReaction !== null
+
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el) return
+    let timer = null
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          timer = setTimeout(async () => {
+            const recorded = await recordView(project.id, user?.id)
+            if (recorded) setViewCount(c => c + 1)
+          }, 2000)
+        } else {
+          clearTimeout(timer)
+          timer = null
+        }
+      },
+      { threshold: 0.5 }
+    )
+    observer.observe(el)
+    return () => { observer.disconnect(); clearTimeout(timer) }
+  }, [project.id])
 
   async function handleReaction(type) {
     if (!user) return
@@ -20,7 +47,7 @@ export default function ProjectCard({ project, onReactionToggle }) {
   }
 
   return (
-    <article className="card overflow-hidden">
+    <article ref={cardRef} className="card overflow-hidden">
       {/* Project image */}
       {project.image_url && (
         <div className="h-44 overflow-hidden">
@@ -101,29 +128,25 @@ export default function ProjectCard({ project, onReactionToggle }) {
         {/* Actions */}
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <div className="flex items-center gap-1">
-            {Object.entries(REACTIONS).map(([type, { label }]) => {
-              const count = reactionCounts[type] || 0
-              const isActive = userReaction === type
-              const Icon = reactionIcons[type]
-              return (
-                <button
-                  key={type}
-                  onClick={() => handleReaction(type)}
-                  title={label}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-brand-700/40 text-brand-300 border border-brand-600/40 scale-105'
-                      : 'text-zinc-500 hover:bg-[#111111] hover:text-zinc-300'
-                  } ${!user ? 'cursor-default' : 'cursor-pointer'}`}
-                >
-                  <Icon size={14} />
-                  {count > 0 && <span>{count}</span>}
-                </button>
-              )
-            })}
+            <button
+              onClick={() => handleReaction('fire')}
+              title="Upvote"
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                isUpvoted
+                  ? 'bg-brand-700/40 text-brand-300 border border-brand-600/40 scale-105'
+                  : 'text-zinc-500 hover:bg-[#111111] hover:text-zinc-300'
+              } ${!user ? 'cursor-default' : 'cursor-pointer'}`}
+            >
+              <ThumbsUp size={14} />
+              {totalUpvotes > 0 && <span>{totalUpvotes}</span>}
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 text-xs text-zinc-600">
+              <Eye size={13} />
+              {viewCount}
+            </span>
             <Link
               to={`/post/${project.id}`}
               className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"

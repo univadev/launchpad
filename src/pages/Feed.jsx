@@ -45,10 +45,11 @@ export default function Feed() {
 
       // Fetch reaction counts and user's own reactions
       const enriched = await Promise.all(data.map(async (p) => {
-        const [reactionRes, userReactionRes, commentRes] = await Promise.all([
+        const [reactionRes, userReactionRes, commentRes, viewRes] = await Promise.all([
           supabase.from('reactions').select('reaction_type').eq('project_id', p.id),
           user ? supabase.from('reactions').select('reaction_type').eq('project_id', p.id).eq('user_id', user.id).single() : Promise.resolve({ data: null }),
           supabase.from('comments').select('id', { count: 'exact', head: true }).eq('project_id', p.id),
+          supabase.from('project_views').select('*', { count: 'exact', head: true }).eq('project_id', p.id),
         ])
 
         const counts = { fire: 0, idea: 0, clap: 0, rocket: 0 }
@@ -59,6 +60,7 @@ export default function Feed() {
           reaction_counts: counts,
           user_reaction: userReactionRes.data?.reaction_type || null,
           comment_count: commentRes.count || 0,
+          view_count: viewRes.count || 0,
         }
       }))
 
