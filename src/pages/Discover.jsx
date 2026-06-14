@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import ProjectCard from '../components/ProjectCard'
-import { FIELDS_OF_INTEREST, PROJECT_TYPES, COUNTRIES, REACTIONS, timeAgo } from '../lib/utils'
+import { FIELDS_OF_INTEREST, PROJECT_TYPES, COUNTRIES, timeAgo } from '../lib/utils'
 import { Search, X, Trophy, Flame, TrendingUp, Users, Filter, ChevronDown, MapPin } from 'lucide-react'
 
 const TABS = ['Projects', 'Builders', 'Leaderboard']
@@ -142,10 +142,11 @@ export default function Discover() {
 
     // Enrich with reactions
     const enriched = await Promise.all(filtered.map(async p => {
-      const [reactionRes, userReactionRes, commentRes] = await Promise.all([
+      const [reactionRes, userReactionRes, commentRes, viewRes] = await Promise.all([
         supabase.from('reactions').select('reaction_type').eq('project_id', p.id),
         user ? supabase.from('reactions').select('reaction_type').eq('project_id', p.id).eq('user_id', user.id).single() : Promise.resolve({ data: null }),
         supabase.from('comments').select('id', { count: 'exact', head: true }).eq('project_id', p.id),
+        supabase.from('project_views').select('*', { count: 'exact', head: true }).eq('project_id', p.id),
       ])
       const counts = { fire: 0, idea: 0, clap: 0, rocket: 0 }
       reactionRes.data?.forEach(r => { if (counts[r.reaction_type] !== undefined) counts[r.reaction_type]++ })
@@ -154,6 +155,7 @@ export default function Discover() {
         reaction_counts: counts,
         user_reaction: userReactionRes.data?.reaction_type || null,
         comment_count: commentRes.count || 0,
+        view_count: viewRes.count || 0,
       }
     }))
     setProjects(enriched)

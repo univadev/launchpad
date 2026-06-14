@@ -57,14 +57,6 @@ export function calculateStreak(lastPostDate, currentStreak) {
   return { newStreak: 1 }; // streak broken
 }
 
-// Reaction emoji map
-export const REACTIONS = {
-  fire: { label: "Fire" },
-  idea: { label: "Brilliant" },
-  clap: { label: "Impressive" },
-  rocket: { label: "Launch it" },
-};
-
 // Field of interest options
 export const FIELDS_OF_INTEREST = [
   "Computer Science",
