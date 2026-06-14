@@ -4,8 +4,11 @@ node_modules
 dist
 build
 .cache
+.npm-cache/
+.edge-profile/
 .env
 *.log
 .env.local
 # Local Netlify folder
 .netlify
+.claude

@@ -1,7 +1,27 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { ClerkProvider } from '@clerk/react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
+
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+if (!CLERK_PUBLISHABLE_KEY) {
+  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env.local')
+}
+
+function ClerkProviderWithRouter({ children }) {
+  const navigate = useNavigate()
+  return (
+    <ClerkProvider
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      routerPush={(to) => navigate(to)}
+      routerReplace={(to) => navigate(to, { replace: true })}
+      afterSignOutUrl="/"
+    >
+      {children}
+    </ClerkProvider>
+  )
+}
 
 // Pages
 import Landing from './pages/Landing'
@@ -61,8 +81,8 @@ function AppRoutes() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/login/*" element={<Login />} />
+        <Route path="/signup/*" element={<Signup />} />
         <Route path="/onboarding" element={
           <ProtectedRoute>
             <Onboarding />
@@ -104,9 +124,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ClerkProviderWithRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ClerkProviderWithRouter>
     </BrowserRouter>
   )
 }

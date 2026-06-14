@@ -1,9 +1,10 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { UserButton } from '@clerk/react'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import {
-  Home, Compass, Bell, Settings, LogOut, User, Zap, Menu, X, Users
+  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users
 } from 'lucide-react'
 
 export default function Navbar() {
@@ -110,23 +111,14 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Profile */}
-          <Link
-            to={`/@${profile?.username || user.id}`}
-            className="flex items-center gap-2"
-          >
-            {profile?.profile_photo_url ? (
-              <img
-                src={profile.profile_photo_url}
-                alt={profile.full_name}
-                className="w-8 h-8 rounded-full object-cover border border-gray-700"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-brand-700 flex items-center justify-center text-white text-sm font-bold">
-                {profile?.full_name?.[0] || profile?.username?.[0] || '?'}
-              </div>
-            )}
-          </Link>
+          <UserButton
+            afterSignOutUrl="/"
+            appearance={{
+              elements: {
+                avatarBox: 'w-8 h-8 border border-gray-700',
+              },
+            }}
+          />
 
           {/* Settings */}
           <Link to="/settings" className="hidden md:flex p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
