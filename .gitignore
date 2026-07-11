@@ -12,3 +12,7 @@ build
 # Local Netlify folder
 .netlify
 .claude
+
+# Local DB backups (contain user PII — do not commit)
+db/backups/
+db/migrations/saved*.json

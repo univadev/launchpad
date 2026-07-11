@@ -26,18 +26,45 @@ export function AuthProvider({ children }) {
       return
     }
     setProfileLoading(true)
-    fetchProfile(user.id)
+    fetchProfile(user.id, user.email)
   }, [isLoaded, user?.id])
 
-  async function fetchProfile(userId) {
+  async function fetchProfile(userId, email) {
     try {
-      const { data, error } = await supabase
+      // Normal path: profile keyed by the current (Clerk) id.
+      let { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .maybeSingle()
 
       if (error) console.error('fetchProfile error:', error.message)
+
+      // Account-linking path: no profile for this Clerk id yet, but an older
+      // account exists with the same email (from the pre-Clerk Supabase-Auth
+      // days). Adopt it by re-keying its id to the Clerk id — the foreign keys
+      // use ON UPDATE CASCADE, so their projects/reactions/etc. come along.
+      if (!data && email) {
+        const { data: existing } = await supabase
+          .from('users')
+          .select('id')
+          .ilike('email', email)
+          .neq('id', userId)
+          .limit(1)
+          .maybeSingle()
+
+        if (existing?.id) {
+          const { data: relinked, error: relinkErr } = await supabase
+            .from('users')
+            .update({ id: userId })
+            .eq('id', existing.id)
+            .select('*')
+            .maybeSingle()
+          if (relinkErr) console.error('account link error:', relinkErr.message)
+          data = relinked ?? data
+        }
+      }
+
       setProfile(data ?? null)
     } catch (err) {
       console.error('fetchProfile exception:', err)
@@ -48,7 +75,7 @@ export function AuthProvider({ children }) {
   }
 
   async function refreshProfile() {
-    if (user) await fetchProfile(user.id)
+    if (user) await fetchProfile(user.id, user.email)
   }
 
   async function signOut() {
