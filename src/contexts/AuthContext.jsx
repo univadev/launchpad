@@ -40,10 +40,7 @@ export function AuthProvider({ children }) {
 
       if (error) console.error('fetchProfile error:', error.message)
 
-      // Account-linking path: no profile for this Clerk id yet, but an older
-      // account exists with the same email (from the pre-Clerk Supabase-Auth
-      // days). Adopt it by re-keying its id to the Clerk id — the foreign keys
-      // use ON UPDATE CASCADE, so their projects/reactions/etc. come along.
+     
       if (!data && email) {
         const { data: existing } = await supabase
           .from('users')
