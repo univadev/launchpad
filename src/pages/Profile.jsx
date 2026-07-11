@@ -3,11 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import ProjectCard from '../components/ProjectCard'
+import AdmissionsProfile, { AdmissionsSummary, hasAdmissionsData } from '../components/AdmissionsProfile'
 import { formatDate, timeAgo, normalizeUrl } from '../lib/utils'
 import {
   MapPin, GraduationCap, Calendar, Zap, Share2, Printer,
   ExternalLink, Flame, BarChart3, Trophy, QrCode, Download,
-  UserPlus, UserCheck, Clock, X, Linkedin, Github, MessageCircle, Users
+  UserPlus, UserCheck, Clock, X, Linkedin, Github, MessageCircle, Users,
+  Pencil, Check as CheckIcon
 } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 
@@ -40,6 +42,7 @@ export default function Profile() {
   const [connection, setConnection] = useState({ status: 'none' })
   const [connBusy, setConnBusy] = useState(false)
   const [connError, setConnError] = useState('')
+  const [editingAdmissions, setEditingAdmissions] = useState(false)
 
   const cleanUsername = username?.replace(/^@/, '')
 
@@ -54,6 +57,7 @@ export default function Profile() {
 
   async function fetchProfile() {
     setLoading(true)
+    setEditingAdmissions(false)
 
     const { data: profileData, error } = await supabase
       .from('users')
@@ -386,6 +390,41 @@ export default function Profile() {
                 </span>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Owner can edit inline; anyone else sees it only when it has content. */}
+        {(isOwn || hasAdmissionsData(profile.admissions_profile)) && (
+          <div className="card p-5 mb-6">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="font-semibold text-white flex items-center gap-2">
+                <GraduationCap size={16} />
+                Admissions profile
+              </h2>
+              {isOwn && (
+                <button
+                  onClick={() => setEditingAdmissions(e => !e)}
+                  className="btn-secondary text-sm py-1.5"
+                >
+                  {editingAdmissions ? (
+                    <><CheckIcon size={15} /> Done</>
+                  ) : (
+                    <><Pencil size={15} /> {hasAdmissionsData(profile.admissions_profile) ? 'Edit' : 'Add'}</>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {isOwn && editingAdmissions ? (
+              <AdmissionsProfile
+                userId={profile.id}
+                hideHeader
+                initialData={profile.admissions_profile}
+                onDataChange={(d) => setProfile(p => ({ ...p, admissions_profile: d }))}
+              />
+            ) : (
+              <AdmissionsSummary data={profile.admissions_profile} />
+            )}
           </div>
         )}
 

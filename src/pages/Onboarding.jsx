@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { FIELDS_OF_INTEREST, COUNTRIES, normalizeUrl } from '../lib/utils'
+import AdmissionsProfile, { clearAdmissionsDraft } from '../components/AdmissionsProfile'
 import { ArrowRight, ArrowLeft, Check, Sparkles, Lightbulb, Linkedin, Github, MessageCircle } from 'lucide-react'
 
 const GRADUATION_YEARS = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() + i)
@@ -20,6 +21,8 @@ export default function Onboarding() {
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [admissionsValid, setAdmissionsValid] = useState(true)
+  const [admissionsData, setAdmissionsData] = useState(null)
 
   const username = localStorage.getItem('pending_username') || user?.email?.split('@')[0] || 'builder'
 
@@ -41,6 +44,7 @@ export default function Onboarding() {
     { title: 'What drives you?', subtitle: 'Your field and what you\'re into' },
     { title: 'What are you working toward?', subtitle: 'Your goal — be honest, be bold' },
     { title: 'Connect your socials', subtitle: 'Visible only to people you\'ve connected with' },
+    { title: 'Admissions profile', subtitle: 'Grade 12 courses, universities & program rankings' },
   ]
 
   function toggleInterest(interest) {
@@ -57,6 +61,7 @@ export default function Onboarding() {
     if (step === 1) return form.field_of_interest && form.interests.length >= 1
     if (step === 2) return form.goal.trim().length >= 10
     if (step === 3) return true
+    if (step === 4) return admissionsValid
     return false
   }
 
@@ -65,7 +70,6 @@ export default function Onboarding() {
     setError('')
 
     try {
-      // Make sure username is unique (in case someone navigated back)
       const cleanUsername = username.replace(/[^a-z0-9_]/gi, '').toLowerCase() || 'builder'
 
       const profileData = {
@@ -82,6 +86,7 @@ export default function Onboarding() {
         linkedin_url: normalizeUrl(form.linkedin_url),
         github_url: normalizeUrl(form.github_url),
         discord_username: form.discord_username.trim() || null,
+        admissions_profile: admissionsData || {},
         current_streak: 0,
         last_post_date: null,
       }
@@ -91,11 +96,11 @@ export default function Onboarding() {
         .upsert(profileData, { onConflict: 'id' })
 
       if (upsertError) {
-        // Surface the real error message so it never silently hangs
         throw new Error(upsertError.message || JSON.stringify(upsertError))
       }
 
       localStorage.removeItem('pending_username')
+      clearAdmissionsDraft(user.id)
       await refreshProfile()
       navigate('/feed', { replace: true })
     } catch (err) {
@@ -106,13 +111,13 @@ export default function Onboarding() {
   }
 
   function handleNext() {
-    if (step < 3) setStep(s => s + 1)
+    if (step < steps.length - 1) setStep(s => s + 1)
     else handleSubmit()
   }
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg">
+      <div className={`w-full ${step === 4 ? 'max-w-3xl' : 'max-w-lg'}`}>
         {/* Logo & header */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center text-white font-black text-xl mx-auto mb-4">U</div>
@@ -132,7 +137,7 @@ export default function Onboarding() {
         </div>
 
         {/* Step content */}
-        <div className="card p-6 animate-fade-in">
+        <div className={step === 4 ? 'animate-fade-in' : 'card p-6 animate-fade-in'}>
           {error && (
             <div className="mb-4 p-3 bg-red-900/30 border border-red-800/50 rounded-lg text-red-300 text-sm">
               {error}
@@ -310,6 +315,15 @@ export default function Onboarding() {
               <p className="text-xs text-gray-600">You can edit or add these anytime from Settings.</p>
             </div>
           )}
+
+          {step === 4 && (
+            <AdmissionsProfile
+              userId={user?.id}
+              embedded
+              onValidityChange={setAdmissionsValid}
+              onDataChange={setAdmissionsData}
+            />
+          )}
         </div>
 
         {/* Navigation */}
@@ -333,13 +347,19 @@ export default function Onboarding() {
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin-fast" />
                 Setting up...
               </span>
-            ) : step === 3 ? (
+            ) : step === steps.length - 1 ? (
               <span className="flex items-center gap-2">Launch my profile <Check size={16} /></span>
             ) : (
               <span className="flex items-center gap-2">Next <ArrowRight size={16} /></span>
             )}
           </button>
         </div>
+
+        {step === 4 && !admissionsValid && (
+          <p className="text-right text-xs text-amber-300 mt-2">
+            Resolve the missing course requirements in Step 5 before you can launch your profile.
+          </p>
+        )}
       </div>
     </div>
   )
