@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { FIELDS_OF_INTEREST, COUNTRIES, normalizeUrl } from '../lib/utils'
-import { Save, Upload, AlertCircle, CheckCircle2, Camera, Trash2, Linkedin, Github, MessageCircle } from 'lucide-react'
+import AdmissionsProfile from '../components/AdmissionsProfile'
+import { Save, Upload, AlertCircle, CheckCircle2, Camera, Trash2, Linkedin, Github, MessageCircle, GraduationCap } from 'lucide-react'
 
 const INTEREST_OPTIONS = [
   'Algorithms', 'Machine Learning', 'Web Dev', 'Mobile Dev', 'Robotics',
@@ -350,6 +351,28 @@ export default function Settings() {
             </button>
           </div>
         </form>
+
+        {/* Kept outside <form> so its controls don't trigger the form submit. */}
+        <div className="card p-5 mt-6">
+          <div className="mb-4">
+            <h2 className="font-semibold text-white flex items-center gap-2">
+              <GraduationCap size={16} />
+              Admissions profile
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Grade 12 courses, universities &amp; program rankings. Changes save automatically.
+            </p>
+          </div>
+          {profile ? (
+            <AdmissionsProfile
+              userId={user.id}
+              hideHeader
+              initialData={profile.admissions_profile}
+            />
+          ) : (
+            <p className="text-sm text-gray-500">Loading…</p>
+          )}
+        </div>
       </div>
     </div>
   )
