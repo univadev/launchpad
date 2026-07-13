@@ -36,6 +36,7 @@ import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
 import Connections from './pages/Connections'
 import Internships from './pages/Internships'
+import InternshipApply from './pages/InternshipApply'
 
 // Wraps protected routes — if logged in but no profile yet, send to onboarding
 function RequireProfile({ children }) {
@@ -117,6 +118,11 @@ function AppRoutes() {
         <Route path="/internships" element={
           <RequireProfile>
             <Internships />
+          </RequireProfile>
+        } />
+        <Route path="/internships/:id/apply" element={
+          <RequireProfile>
+            <InternshipApply />
           </RequireProfile>
         } />
         <Route path="/:username" element={<Profile />} />
