@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import {
-  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users
+  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users, Briefcase
 } from 'lucide-react'
 
 export default function Navbar() {
@@ -48,6 +48,7 @@ export default function Navbar() {
     { to: '/discover', icon: Compass, label: 'Discover' },
     { to: '/connections', icon: Users, label: 'Connections' },
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
+    { to: '/internships', icon: Briefcase, label: 'Internships' },
   ]
 
   if (!user) return (
