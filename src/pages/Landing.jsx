@@ -201,7 +201,7 @@ export default function Landing() {
       <footer className="border-t border-white/10 py-8 px-4 text-center text-sm text-zinc-600">
        <p>
   © 2026 Univa Dev 
-  <a href="https://univadev.com" class="text-brand-600 hover:text-brand-500 underline-offset-4 hover:underline transition-colors ml-4 mr-4">
+  <a href="https://univadev.com" className="text-brand-600 hover:text-brand-500 underline-offset-4 hover:underline transition-colors ml-4 mr-4">
     univadev.com
   </a> 
    Built for the builders

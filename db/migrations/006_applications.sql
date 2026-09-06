@@ -1,10 +1,25 @@
 -- Internship applications
 -- Run this in the Supabase SQL editor.
+--
+-- NOTE: user_id is TEXT, not uuid. Migration 003 converted public.users.id to
+-- text to hold Clerk ids (e.g. "user_2abc..."), so a uuid FK cannot be created
+-- here. RLS compares against public.clerk_user_id() for the same reason: this
+-- project authenticates with Clerk, so Supabase's own auth helper is always
+-- NULL here and would block every insert.
+
+-- Recreated defensively in case 004 has not been applied to this database.
+create or replace function public.clerk_user_id()
+returns text
+language sql
+stable
+as $$
+  select nullif(auth.jwt() ->> 'sub', '')
+$$;
 
 create table if not exists public.applications (
   id               uuid primary key default gen_random_uuid(),
   internship_id    text not null,
-  user_id          uuid references public.users(id) on delete cascade not null,
+  user_id          text references public.users(id) on delete cascade not null,
 
   -- Personal information
   first_name       text not null,
@@ -62,9 +77,9 @@ alter table public.applications enable row level security;
 drop policy if exists users_insert_own_applications on public.applications;
 create policy users_insert_own_applications on public.applications
   for insert
-  with check (user_id = auth.uid());
+  with check (user_id = public.clerk_user_id());
 
 drop policy if exists users_read_own_applications on public.applications;
 create policy users_read_own_applications on public.applications
   for select
-  using (user_id = auth.uid());
+  using (user_id = public.clerk_user_id());

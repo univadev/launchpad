@@ -3,6 +3,7 @@ import { X, Plus, Sparkles, Upload, Image, ChevronDown, ChevronUp, AlertCircle, 
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { PROJECT_TYPES, TECH_SUGGESTIONS, calculateStreak } from '../lib/utils'
+import { candidatesFor } from '../lib/venues'
 
 const MAX_IMAGE_SIZE = 800 // px
 const IMAGE_QUALITY = 0.82
@@ -88,12 +89,19 @@ export default function PostModal({ onClose, onSuccess }) {
           description: form.description,
           tech_stack: form.tech_stack,
           project_type: form.project_type,
+          impact_metrics: form.impact_metrics,
+          link: form.link,
+          candidates: candidatesFor(form.project_type).map(v => ({
+            id: v.id, name: v.name, kind: v.kind, selectivity: v.selectivity, blurb: v.blurb,
+          })),
         }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!data) throw new Error('Could not reach the feedback service — try `netlify dev`.')
+      if (!res.ok) throw new Error(data.error || 'Analysis failed')
       setAiSuggestions(data)
     } catch (err) {
-      setAiSuggestions({ error: 'AI analysis unavailable — submit anyway!' })
+      setAiSuggestions({ error: err.message || 'AI analysis unavailable — submit anyway!' })
     } finally {
       setAiLoading(false)
     }
@@ -373,24 +381,41 @@ export default function PostModal({ onClose, onSuccess }) {
                       <p className="text-gray-500">{aiSuggestions.error}</p>
                     ) : (
                       <>
-                        {aiSuggestions.impact_suggestions && (
-                          <div>
-                            <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide mb-1 flex items-center gap-1"><Lightbulb size={12} /> Impact Suggestions</p>
-                            <p className="text-gray-300 leading-relaxed">{aiSuggestions.impact_suggestions}</p>
+                        {aiSuggestions.verdict && (
+                          <p className="text-gray-200 leading-relaxed">{aiSuggestions.verdict}</p>
+                        )}
+                        {aiSuggestions.readiness_label && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-1 flex-1 max-w-[140px]">
+                              {[1, 2, 3, 4, 5].map(i => (
+                                <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= aiSuggestions.readiness ? 'bg-brand-500' : 'bg-white/10'}`} />
+                              ))}
+                            </div>
+                            <span className="text-xs font-medium text-gray-400">{aiSuggestions.readiness_label}</span>
                           </div>
                         )}
-                        {aiSuggestions.skills_demonstrated && (
+                        {aiSuggestions.gaps?.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide mb-1 flex items-center gap-1"><Target size={12} /> Skills Demonstrated</p>
-                            <p className="text-gray-300 leading-relaxed">{aiSuggestions.skills_demonstrated}</p>
+                            <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide mb-1.5 flex items-center gap-1"><Lightbulb size={12} /> Fix before you post</p>
+                            <div className="space-y-2">
+                              {aiSuggestions.gaps.map((g, i) => (
+                                <div key={i}>
+                                  <p className="text-gray-200">{g.issue}</p>
+                                  <p className="text-gray-400 leading-relaxed">&rarr; {g.fix}</p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
-                        {aiSuggestions.similar_projects && (
+                        {aiSuggestions.skills_demonstrated?.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide mb-1">🔗 Similar Work</p>
-                            <p className="text-gray-300 leading-relaxed">{aiSuggestions.similar_projects}</p>
+                            <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide mb-1.5 flex items-center gap-1"><Target size={12} /> Skills Demonstrated</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {aiSuggestions.skills_demonstrated.map((sk, i) => <span key={i} className="tag">{sk}</span>)}
+                            </div>
                           </div>
                         )}
+                        <p className="text-xs text-gray-600">Post it to see where you could submit this project.</p>
                       </>
                     )}
                     <button

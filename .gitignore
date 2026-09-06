@@ -16,3 +16,14 @@ build
 # Local DB backups (contain user PII — do not commit)
 db/backups/
 db/migrations/saved*.json
+
+# OS / editor cruft
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Env: keep every real env file out, allow the value-less template
+.env.*
+!.env.example
