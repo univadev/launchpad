@@ -6,6 +6,7 @@ import { timeAgo, formatDate } from '../lib/utils'
 import ReactMarkdown from 'react-markdown'
 import { ArrowLeft, ExternalLink, MessageSquare, Send, Trash2, Reply, Clock, AlertCircle, ThumbsUp, X, Eye } from 'lucide-react'
 import { recordView } from '../lib/viewTracker'
+import AIFeedbackPanel from '../components/AIFeedbackPanel'
 
 function CommentItem({ comment, depth = 0, onReply, onDelete, currentUserId }) {
   const author = comment.users || {}
@@ -234,6 +235,8 @@ export default function PostDetail() {
 
   const author = project.users
 
+  const isOwner = !!user && user.id === project.user_id
+
   return (
     <div className="pt-14 min-h-screen">
       <div className="max-w-3xl mx-auto px-4 py-6">
@@ -326,6 +329,9 @@ export default function PostDetail() {
             </div>
           </div>
         </div>
+
+        {/* AI feedback — owner only, so we don't spend a call for every viewer */}
+        {isOwner && <AIFeedbackPanel project={project} />}
 
         {/* Comments */}
         <div className="card p-6">

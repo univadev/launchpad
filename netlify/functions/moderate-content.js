@@ -1,4 +1,4 @@
-exports.handler = async function (event, context) {
+export const handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) }
   }
@@ -43,7 +43,7 @@ Respond with JSON only: {"is_safe": true/false, "reason": "brief reason if unsaf
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: process.env.GROQ_MODERATION_MODEL || 'openai/gpt-oss-20b',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
         max_tokens: 100,
