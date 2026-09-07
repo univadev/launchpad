@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   GRADE_12_COURSES, UNIVERSITIES, PROGRAMS, APPLICATION_STATUSES,
-  MIN_COURSES, MAX_PROGRAMS, programById,
+  MIN_COURSES, MAX_PROGRAMS, resolveProgram, customCourseCode,
 } from '../lib/admissionsData'
 import {
   Search, X, Plus, GripVertical, ArrowUp, ArrowDown, Check,
@@ -52,7 +52,7 @@ export function hasAdmissionsData(data) {
 function requirementsMetFor(data) {
   const codes = new Set((data.courses || []).map(c => c.code))
   return (data.programs || []).every(p => {
-    const prog = programById(p.programId)
+    const prog = resolveProgram(p)
     return !prog || prog.requirements.every(code => codes.has(code))
   })
 }
@@ -96,7 +96,7 @@ export default function AdmissionsProfile({
     return PROGRAMS.filter(p => data.universities.includes(p.university) && !chosenIds.has(p.id))
   }, [data.universities, data.programs])
   const unmetPrograms = useMemo(() => data.programs.filter(p => {
-    const prog = programById(p.programId)
+    const prog = resolveProgram(p)
     return prog && prog.requirements.some(code => !addedCodes.has(code))
   }), [data.programs, addedCodes])
   const requirementsMet = unmetPrograms.length === 0
@@ -238,6 +238,18 @@ function CoursesStep({ data, setData }) {
     setData(d => ({ ...d, courses: [...d.courses, { uid: newUid(), code: course.code, name: course.name, grade: '' }] }))
     setQuery('')
   }
+
+  // Courses outside Ontario (e.g. "AP Calculus BC") have no OSSD code, so derive
+  // one — the list de-duplicates on `code` and the requirements check reads it.
+  const trimmedQuery = query.trim()
+  const canAddCustomCourse =
+    trimmedQuery.length > 1 &&
+    !data.courses.some(c => c.name.toLowerCase() === trimmedQuery.toLowerCase()) &&
+    !matches.some(c => c.name.toLowerCase() === trimmedQuery.toLowerCase())
+
+  function addCustomCourse() {
+    addCourse({ code: customCourseCode(trimmedQuery), name: trimmedQuery })
+  }
   function setGrade(uid, grade) {
     const g = grade.replace(/[^\d]/g, '').slice(0, 3)
     setData(d => ({ ...d, courses: d.courses.map(c => c.uid === uid ? { ...c, grade: g } : c) }))
@@ -261,7 +273,7 @@ function CoursesStep({ data, setData }) {
           value={query}
           onChange={e => setQuery(e.target.value)}
         />
-        {query && matches.length > 0 && (
+        {query && (matches.length > 0 || canAddCustomCourse) && (
           <div className="absolute z-20 mt-1 w-full bg-zinc-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden scrollbar-thin max-h-64 overflow-y-auto">
             {matches.map(c => (
               <button
@@ -273,6 +285,16 @@ function CoursesStep({ data, setData }) {
                 <span className="tag">{c.code}</span>
               </button>
             ))}
+            {canAddCustomCourse && (
+              <button
+                onClick={addCustomCourse}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-800 transition-colors border-t border-gray-800"
+              >
+                <Plus size={14} className="text-brand-400 shrink-0" />
+                <span className="text-sm text-gray-200 truncate">Add &ldquo;{trimmedQuery}&rdquo;</span>
+                <span className="text-xs text-gray-500 ml-auto shrink-0">custom</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -306,13 +328,38 @@ function CoursesStep({ data, setData }) {
 }
 
 function UniversitiesStep({ data, setData }) {
+  const [customInput, setCustomInput] = useState('')
+
+  // Anything the user typed that isn't one of the built-in Ontario schools.
+  // Rendered alongside them so a custom pick looks and behaves the same.
+  const customUniversities = useMemo(
+    () => data.universities.filter(u => !UNIVERSITIES.includes(u)),
+    [data.universities]
+  )
+  const allUniversities = useMemo(
+    () => [...UNIVERSITIES, ...customUniversities],
+    [customUniversities]
+  )
+
+  function addCustom() {
+    const name = customInput.trim()
+    if (!name) return
+    // Case-insensitive match so "waterloo" doesn't create a duplicate entry.
+    const existing = allUniversities.find(u => u.toLowerCase() === name.toLowerCase())
+    const finalName = existing || name
+    setData(d => d.universities.includes(finalName)
+      ? d
+      : { ...d, universities: [...d.universities, finalName] })
+    setCustomInput('')
+  }
+
   function toggle(name) {
     setData(d => {
       const has = d.universities.includes(name)
       const universities = has ? d.universities.filter(u => u !== name) : [...d.universities, name]
       // Drop any ranked programs that belong to a now-deselected university.
       const programs = has
-        ? d.programs.filter(p => { const prog = programById(p.programId); return prog && universities.includes(prog.university) })
+        ? d.programs.filter(p => { const prog = resolveProgram(p); return !prog || universities.includes(prog.university) })
         : d.programs
       return { ...d, universities, programs }
     })
@@ -320,7 +367,7 @@ function UniversitiesStep({ data, setData }) {
   return (
     <StepCard n={2} title="Choose universities" count={`Selected universities: ${data.universities.length}`}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {UNIVERSITIES.map(name => {
+        {allUniversities.map(name => {
           const checked = data.universities.includes(name)
           return (
             <button
@@ -340,13 +387,41 @@ function UniversitiesStep({ data, setData }) {
           )
         })}
       </div>
+
+      <div className="flex gap-2 mt-3">
+        <input
+          className="input flex-1"
+          placeholder="Not listed? Add your university"
+          value={customInput}
+          onChange={e => setCustomInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustom() } }}
+        />
+        <button
+          type="button"
+          onClick={addCustom}
+          disabled={!customInput.trim()}
+          className="btn-secondary text-sm disabled:opacity-40"
+        >
+          <Plus size={14} />
+          Add
+        </button>
+      </div>
     </StepCard>
   )
 }
 
 function ProgramsStep({ data, setData, availablePrograms }) {
   const [query, setQuery] = useState('')
+  const [customUni, setCustomUni] = useState('')
   const dragIndex = useRef(null)
+
+  // Default the custom-program university to the first selected one, and keep it
+  // valid if the user later deselects that university.
+  useEffect(() => {
+    if (!data.universities.includes(customUni)) {
+      setCustomUni(data.universities[0] || '')
+    }
+  }, [data.universities, customUni])
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -360,6 +435,25 @@ function ProgramsStep({ data, setData, availablePrograms }) {
   function addProgram(prog) {
     if (atMax) return
     setData(d => ({ ...d, programs: [...d.programs, { uid: newUid(), programId: prog.id, status: 'Pending' }] }))
+    setQuery('')
+  }
+
+  // A program not in the curated list is stored inline rather than by id, since
+  // there is nothing to look it up in. resolveProgram() reads this shape.
+  // requirements stays empty so the prerequisite check never blocks on a program
+  // whose real requirements we don't know.
+  function addCustomProgram() {
+    if (atMax) return
+    const name = query.trim()
+    if (!name || !customUni) return
+    setData(d => ({
+      ...d,
+      programs: [...d.programs, {
+        uid: newUid(),
+        custom: { name, university: customUni, requirements: [] },
+        status: 'Pending',
+      }],
+    }))
     setQuery('')
   }
   function removeProgram(uid) {
@@ -411,6 +505,26 @@ function ProgramsStep({ data, setData, availablePrograms }) {
           </div>
         )}
       </div>
+
+      {query.trim() && matches.length === 0 && data.universities.length > 0 && !atMax && (
+        <div className="flex flex-wrap items-center gap-2 mt-2 p-2.5 rounded-lg bg-zinc-900/60 border border-white/5">
+          <span className="text-sm text-gray-300 truncate">
+            Add &ldquo;{query.trim()}&rdquo; at
+          </span>
+          <select
+            value={customUni}
+            onChange={e => setCustomUni(e.target.value)}
+            className="bg-zinc-950 border border-gray-700 rounded-md text-xs text-gray-200 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            aria-label="University for custom program"
+          >
+            {data.universities.map(u => <option key={u} value={u}>{u}</option>)}
+          </select>
+          <button type="button" onClick={addCustomProgram} className="btn-secondary text-xs px-3 py-1.5 ml-auto">
+            <Plus size={13} />
+            Add
+          </button>
+        </div>
+      )}
       {atMax && <p className="text-xs text-yellow-400 mt-2">You've reached the maximum of {MAX_PROGRAMS} programs.</p>}
 
       <div className="flex flex-col gap-2 mt-4">
@@ -418,8 +532,7 @@ function ProgramsStep({ data, setData, availablePrograms }) {
           <p className="text-xs text-gray-600 py-2">No programs ranked yet.</p>
         )}
         {data.programs.map((p, i) => {
-          const prog = programById(p.programId)
-          if (!prog) return null
+          const prog = resolveProgram(p) || { name: 'Unknown program', university: '', requirements: [] }
           return (
             <div
               key={p.uid}
@@ -513,7 +626,7 @@ function RequirementCheckStep({ data, addedCodes, unmetCount }) {
       ) : (
         <div className="flex flex-col gap-2">
           {data.programs.map(p => {
-            const prog = programById(p.programId)
+            const prog = resolveProgram(p)
             if (!prog) return null
             const missing = prog.requirements.filter(code => !addedCodes.has(code))
             const ok = missing.length === 0
@@ -575,7 +688,7 @@ export function AdmissionsSummary({ data }) {
           <SummaryHeading icon={ListOrdered} label="Ranked programs" count={d.programs.length} />
           <div className="flex flex-col gap-2">
             {d.programs.map((p, i) => {
-              const prog = programById(p.programId)
+              const prog = resolveProgram(p)
               if (!prog) return null
               return (
                 <div key={p.uid || p.programId} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-zinc-900/60 border border-white/5">

@@ -111,3 +111,33 @@ export const MAX_PROGRAMS = 20
 export function programById(id) {
   return PROGRAMS.find(p => p.id === id) || null
 }
+
+// A ranked program is either a reference into PROGRAMS (`programId`) or a
+// user-entered one stored inline (`custom`). Always resolve through this so a
+// custom entry is never treated as "not found" — several call sites drop or hide
+// programs that fail to resolve, which would silently delete a user's data.
+export function resolveProgram(entry) {
+  if (!entry) return null
+  if (entry.custom) {
+    return {
+      id: entry.uid,
+      name: entry.custom.name,
+      university: entry.custom.university,
+      requirements: Array.isArray(entry.custom.requirements) ? entry.custom.requirements : [],
+      isCustom: true,
+    }
+  }
+  return programById(entry.programId)
+}
+
+// Courses are de-duplicated by `code`, and custom ones (e.g. "AP Calculus BC")
+// have no Ontario-style code. Derive a stable one from the name so dedupe and
+// the requirements check keep working.
+export function customCourseCode(name) {
+  const slug = String(name || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return `CUSTOM-${slug || 'COURSE'}`
+}
+
+export function isCustomCourseCode(code) {
+  return typeof code === 'string' && code.startsWith('CUSTOM-')
+}
