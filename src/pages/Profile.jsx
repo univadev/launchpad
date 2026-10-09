@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import ProjectCard from '../components/ProjectCard'
+import { enrichProjects } from '../lib/projectStats'
 import AdmissionsProfile, { AdmissionsSummary, hasAdmissionsData } from '../components/AdmissionsProfile'
 import { VENUE_BY_ID } from '../lib/venues'
 import { STATUS_META, WIN_STATUSES } from '../lib/submissions'
@@ -84,24 +85,8 @@ export default function Profile() {
       .eq('user_id', profileData.id)
       .order('created_at', { ascending: false })
 
-    const enriched = await Promise.all((projectsData || []).map(async p => {
-      const [reactionRes, userReactionRes, commentRes, viewRes] = await Promise.all([
-        supabase.from('reactions').select('reaction_type').eq('project_id', p.id),
-        user ? supabase.from('reactions').select('reaction_type').eq('project_id', p.id).eq('user_id', user?.id).single() : Promise.resolve({ data: null }),
-        supabase.from('comments').select('id', { count: 'exact', head: true }).eq('project_id', p.id),
-        supabase.from('project_views').select('*', { count: 'exact', head: true }).eq('project_id', p.id),
-      ])
-      const counts = { fire: 0, idea: 0, clap: 0, rocket: 0 }
-      reactionRes.data?.forEach(r => { if (counts[r.reaction_type] !== undefined) counts[r.reaction_type]++ })
-      return {
-        ...p,
-        users: profileData,
-        reaction_counts: counts,
-        user_reaction: userReactionRes.data?.reaction_type || null,
-        comment_count: commentRes.count || 0,
-        view_count: viewRes.count || 0,
-      }
-    }))
+    const enriched = (await enrichProjects(projectsData || [], user?.id))
+      .map(p => ({ ...p, users: profileData }))
 
     setProjects(enriched)
 

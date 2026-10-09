@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import ProjectCard from '../components/ProjectCard'
+import { enrichProjects } from '../lib/projectStats'
 import { FIELDS_OF_INTEREST, PROJECT_TYPES, COUNTRIES, timeAgo } from '../lib/utils'
 import { Search, X, Trophy, Flame, TrendingUp, Users, Filter, ChevronDown, MapPin } from 'lucide-react'
 
@@ -110,28 +111,40 @@ export default function Discover() {
   const [mostReacted, setMostReacted] = useState([])
   const [longestStreaks, setLongestStreaks] = useState([])
   const [loading, setLoading] = useState(true)
+  // Search fires after typing pauses, not on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  // Only the newest request may update state, so a slow earlier response
+  // can't overwrite results for what the user has typed since.
+  const latestRequest = useRef(0)
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(t)
+  }, [search])
 
   useEffect(() => {
     fetchData()
-  }, [filters, search, activeTab])
+  }, [filters, debouncedSearch, activeTab])
 
   async function fetchData() {
+    const requestId = ++latestRequest.current
+    const isCurrent = () => requestId === latestRequest.current
     setLoading(true)
-    if (activeTab === 'Projects') await fetchProjects()
-    else if (activeTab === 'Builders') await fetchBuilders()
+    if (activeTab === 'Projects') await fetchProjects(isCurrent)
+    else if (activeTab === 'Builders') await fetchBuilders(isCurrent)
     else await fetchLeaderboard()
-    setLoading(false)
+    if (isCurrent()) setLoading(false)
   }
 
-  async function fetchProjects() {
+  async function fetchProjects(isCurrent) {
     let query = supabase
       .from('projects')
-      .select(`*, users!projects_user_id_fkey(id, username, full_name, profile_photo_url, country)`)
+      .select(`*, users!projects_user_id_fkey(id, username, full_name, profile_photo_url, country, field_of_interest)`)
       .order('created_at', { ascending: false })
       .limit(30)
 
     if (filters.projectType) query = query.eq('project_type', filters.projectType)
-    if (search) query = query.ilike('title', `%${search}%`)
+    if (debouncedSearch) query = query.ilike('title', `%${debouncedSearch}%`)
 
     const { data } = await query
 
@@ -140,28 +153,11 @@ export default function Discover() {
     if (filters.field) filtered = filtered.filter(p => p.users?.field_of_interest === filters.field || p.tech_stack?.some(t => t.toLowerCase().includes(filters.field.toLowerCase())))
     if (filters.country) filtered = filtered.filter(p => p.users?.country === filters.country)
 
-    // Enrich with reactions
-    const enriched = await Promise.all(filtered.map(async p => {
-      const [reactionRes, userReactionRes, commentRes, viewRes] = await Promise.all([
-        supabase.from('reactions').select('reaction_type').eq('project_id', p.id),
-        user ? supabase.from('reactions').select('reaction_type').eq('project_id', p.id).eq('user_id', user.id).single() : Promise.resolve({ data: null }),
-        supabase.from('comments').select('id', { count: 'exact', head: true }).eq('project_id', p.id),
-        supabase.from('project_views').select('*', { count: 'exact', head: true }).eq('project_id', p.id),
-      ])
-      const counts = { fire: 0, idea: 0, clap: 0, rocket: 0 }
-      reactionRes.data?.forEach(r => { if (counts[r.reaction_type] !== undefined) counts[r.reaction_type]++ })
-      return {
-        ...p,
-        reaction_counts: counts,
-        user_reaction: userReactionRes.data?.reaction_type || null,
-        comment_count: commentRes.count || 0,
-        view_count: viewRes.count || 0,
-      }
-    }))
-    setProjects(enriched)
+    const enriched = await enrichProjects(filtered, user?.id)
+    if (isCurrent()) setProjects(enriched)
   }
 
-  async function fetchBuilders() {
+  async function fetchBuilders(isCurrent) {
     let query = supabase
       .from('users')
       .select('*')
@@ -170,16 +166,16 @@ export default function Discover() {
 
     if (filters.field) query = query.eq('field_of_interest', filters.field)
     if (filters.country) query = query.eq('country', filters.country)
-    if (search) {
+    if (debouncedSearch) {
       // strip @ prefix and any PostgREST `or()` delimiters/wildcards that would break parsing
-      const s = search.replace(/^@/, '').replace(/[,()*]/g, '')
+      const s = debouncedSearch.replace(/^@/, '').replace(/[,()*]/g, '')
       if (s) {
         query = query.or(`full_name.ilike.%${s}%,username.ilike.%${s}%`)
       }
     }
 
     const { data } = await query
-    setBuilders(data || [])
+    if (isCurrent()) setBuilders(data || [])
   }
 
   async function fetchLeaderboard() {
@@ -209,13 +205,8 @@ export default function Discover() {
       .gte('created_at', weekAgo)
       .limit(50)
 
-    const reactionCounts = await Promise.all((weekProjects || []).map(async p => {
-      const { count } = await supabase
-        .from('reactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('project_id', p.id)
-      return { ...p, total_reactions: count || 0 }
-    }))
+    const withStats = await enrichProjects(weekProjects || [])
+    const reactionCounts = withStats.map(p => ({ ...p, total_reactions: p.reaction_counts.fire }))
     setMostReacted(reactionCounts.sort((a, b) => b.total_reactions - a.total_reactions).slice(0, 7))
 
     // Longest streaks
