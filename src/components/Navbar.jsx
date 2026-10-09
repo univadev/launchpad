@@ -59,7 +59,7 @@ export default function Navbar() {
     { to: '/discover', icon: Compass, label: 'Discover' },
     { to: '/connections', icon: Users, label: 'Connections' },
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
-    { to: '/tracker', icon: Target, label: 'Tracker', badge: dueSoonCount },
+    { to: '/tracker', icon: Target, label: 'Path', badge: dueSoonCount },
     { to: '/coach', icon: GraduationCap, label: 'Coach' },
     { to: '/internships', icon: Briefcase, label: 'Internships' },
   ]

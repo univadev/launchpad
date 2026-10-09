@@ -394,3 +394,21 @@ export function candidatesFor(projectType, country) {
   const matched = eligible.filter(v => v.types.includes(projectType))
   return matched.length >= 5 ? matched : eligible
 }
+
+// Venues that are a reach at the current readiness but become a realistic
+// target (fit or safe) one level up — the "what improving gets you" list.
+export function unlocksAtNextLevel(projectType, readiness, country) {
+  const r = Math.max(1, Math.min(5, Number(readiness) || 1))
+  if (r >= 5) return []
+  return VENUES
+    .filter(v => isEligible(v, country) && v.types.includes(projectType))
+    .filter(v => tierFor(v, r) === 'reach' && tierFor(v, r + 1) !== 'reach')
+    .sort((a, b) => b.selectivity - a.selectivity)
+}
+
+// Eligible, type-matched venues that are already a realistic target.
+export function reachableNow(projectType, readiness, country) {
+  return VENUES.filter(v =>
+    isEligible(v, country) && v.types.includes(projectType) && tierFor(v, readiness) !== 'reach'
+  )
+}

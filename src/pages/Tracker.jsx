@@ -8,6 +8,7 @@ import {
   daysUntil, deadlineLabel, isDueSoon,
   updateSubmission, deleteSubmission, notifySubmissionsChanged,
 } from '../lib/submissions'
+import NextSteps from '../components/NextSteps'
 import { Target, ExternalLink, Trash2, AlertCircle, Clock, Sparkles } from 'lucide-react'
 
 const SECTIONS = [
@@ -112,7 +113,7 @@ function SubmissionRow({ sub, onChange, onRemove }) {
 }
 
 export default function Tracker() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [subs, setSubs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -165,10 +166,10 @@ export default function Tracker() {
       <div className="max-w-2xl mx-auto px-4 py-6">
         <h1 className="text-xl font-bold text-white flex items-center gap-2">
           <Target size={20} />
-          Submission tracker
+          Your path
         </h1>
         <p className="text-sm text-zinc-400 mt-1 mb-6">
-          Where you're taking your projects. Accepted and award results show on your profile.
+          Where each project stands, what to do next, and where you're taking it. Accepted and award results show on your profile.
           Set a deadline and we'll email you a week before and the day before
           (<Link to="/settings" className="text-brand-300 hover:underline">settings</Link>).
         </p>
@@ -179,6 +180,12 @@ export default function Tracker() {
             <p>{error}</p>
           </div>
         )}
+
+        <NextSteps userId={user?.id} country={profile?.country || ''} />
+
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3 flex items-center gap-2">
+          <Target size={13} /> Submissions
+        </h2>
 
         {loading ? (
           <div className="flex justify-center py-16">
