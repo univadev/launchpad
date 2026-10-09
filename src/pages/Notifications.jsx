@@ -18,11 +18,13 @@ function NotifItem({ notif, onRead, onRespond, respondingId }) {
   const content = notif.content || {}
 
   function getDescription() {
+    const actor = content.actor_name || content.actor_username
     if (notif.type === 'reaction') {
-      return `Someone reacted to "${content.project_title || 'your project'}"`
+      return `${actor || 'Someone'} upvoted "${content.project_title || 'your project'}"`
     }
     if (notif.type === 'comment') {
-      return `New comment on "${content.project_title || 'your project'}": ${content.preview || ''}`
+      const what = content.is_reply ? 'replied to your comment on' : 'commented on'
+      return `${actor || 'Someone'} ${what} "${content.project_title || 'your project'}": ${content.preview || ''}`
     }
     if (notif.type === 'mention') {
       return `You were mentioned in a comment`
@@ -32,15 +34,19 @@ function NotifItem({ notif, onRead, onRespond, respondingId }) {
       return `${name} wants to connect with you`
     }
     if (notif.type === 'connection_accepted') {
-      return `Your connection request was accepted`
+      const name = content.recipient_name || content.recipient_username
+      return name ? `${name} accepted your connection request` : `Your connection request was accepted`
     }
     return 'New notification'
   }
 
+  const profileUsername = notif.type === 'connection_accepted'
+    ? content.recipient_username
+    : content.requester_username
   const link = content.project_id
     ? `/post/${content.project_id}`
-    : content.requester_username
-      ? `/${content.requester_username}`
+    : profileUsername
+      ? `/${profileUsername}`
       : '#'
 
   const isPendingRequest = notif.type === 'connection_request' && content.connection_id && !content.resolved

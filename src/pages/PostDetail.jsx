@@ -187,20 +187,8 @@ export default function PostDetail() {
 
       if (error) throw error
 
-      // Notify project owner
-      if (project?.user_id !== user.id) {
-        await supabase.from('notifications').insert({
-          user_id: project.user_id,
-          type: 'comment',
-          content: {
-            project_id: id,
-            project_title: project.title,
-            commenter_id: user.id,
-            preview: commentText.slice(0, 100),
-          },
-          read: false,
-        })
-      }
+      // The project owner (and parent comment author, for replies) are notified
+      // by a database trigger — see db/migrations/010.
 
       setCommentText('')
       setReplyTo(null)
