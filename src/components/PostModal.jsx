@@ -101,7 +101,7 @@ export default function PostModal({ project: existing = null, onClose, onSuccess
         project_type: form.project_type,
         impact_metrics: form.impact_metrics,
         link: form.link,
-        candidates: candidatesFor(form.project_type).map(v => ({
+        candidates: candidatesFor(form.project_type, profile?.country).map(v => ({
           id: v.id, name: v.name, kind: v.kind, selectivity: v.selectivity, blurb: v.blurb,
         })),
       })

@@ -7,6 +7,10 @@
 //
 // selectivity: 1 = open to nearly all entrants, 5 = national/international elite.
 // types: which PROJECT_TYPES (see utils.js) the venue realistically accepts.
+// regions: country codes whose students are eligible (see REGION_BY_COUNTRY).
+//   Omitted = open internationally. Check eligibility on the official site
+//   before adding a venue — recommending a contest a student can't enter is
+//   worse than not recommending one.
 
 export const VENUE_KINDS = {
   competition: 'Competition',
@@ -14,6 +18,15 @@ export const VENUE_KINDS = {
   hackathon: 'Hackathon',
   showcase: 'Showcase',
   fellowship: 'Fellowship',
+  contest: 'Contest',
+  program: 'Program',
+  scholarship: 'Scholarship',
+}
+
+// profile.country (COUNTRIES in utils.js) -> region code used in `regions`.
+export const REGION_BY_COUNTRY = {
+  'United States': 'US',
+  'Canada': 'CA',
 }
 
 export const VENUES = [
@@ -24,12 +37,13 @@ export const VENUES = [
     kind: 'competition',
     selectivity: 5,
     url: 'https://www.societyforscience.org/isef/',
-    blurb: 'International Science and Engineering Fair. You qualify through an affiliated regional fair first.',
+    blurb: 'International Science and Engineering Fair. You qualify through an affiliated fair first — in Canada, that means the Canada-Wide Science Fair, then selection to Team Canada-ISEF.',
     timing: 'Regionals winter · finals May',
     types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Social Impact'],
   },
   {
     id: 'sts',
+    regions: ['US'],
     name: 'Regeneron Science Talent Search',
     kind: 'competition',
     selectivity: 5,
@@ -40,6 +54,7 @@ export const VENUES = [
   },
   {
     id: 'jshs',
+    regions: ['US'],
     name: 'JSHS (Junior Science & Humanities Symposium)',
     kind: 'competition',
     selectivity: 3,
@@ -50,6 +65,7 @@ export const VENUES = [
   },
   {
     id: 'think',
+    regions: ['US'],
     name: 'MIT THINK Scholars',
     kind: 'fellowship',
     selectivity: 5,
@@ -60,6 +76,7 @@ export const VENUES = [
   },
   {
     id: 'davidson',
+    regions: ['US'],
     name: 'Davidson Fellows',
     kind: 'fellowship',
     selectivity: 5,
@@ -114,6 +131,7 @@ export const VENUES = [
   // ---- Software / apps ----
   {
     id: 'congressional-app',
+    regions: ['US'],
     name: 'Congressional App Challenge',
     kind: 'competition',
     selectivity: 2,
@@ -217,9 +235,100 @@ export const VENUES = [
     types: ['Robotics', 'Hardware'],
   },
 
+  // ---- Canada ----
+  {
+    id: 'ysc-regional',
+    name: 'Youth Science Canada regional STEM fair',
+    kind: 'competition',
+    selectivity: 2,
+    regions: ['CA'],
+    url: 'https://youthscience.ca/',
+    blurb: 'Enter the regional fair for your home or school address (or the YSC Virtual fair if your area has none). Rules and grades vary by fair. Top projects advance to the Canada-Wide Science Fair.',
+    timing: 'Most regional fairs run Mar–Apr',
+    types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Social Impact', 'Other'],
+  },
+  {
+    id: 'cwsf',
+    name: 'Canada-Wide Science Fair',
+    kind: 'competition',
+    selectivity: 4,
+    regions: ['CA'],
+    url: 'https://youthscience.ca/',
+    blurb: "Canada's national STEM fair, run by Youth Science Canada. You get there by winning a spot at your regional fair; it's also the route to Team Canada-ISEF.",
+    timing: 'National fair in May',
+    types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Social Impact', 'Other'],
+  },
+  {
+    id: 'biogenius',
+    name: 'Sanofi Biogenius Canada',
+    kind: 'competition',
+    selectivity: 4,
+    regions: ['CA'],
+    url: 'https://www.biogenius.ca/',
+    blurb: 'Life-science and biotech research competition for high school and CEGEP students. Start with a proposal, then compete regionally and nationally.',
+    timing: 'Proposals usually due mid-November (varies by region)',
+    types: ['Research', 'Data Science', 'AI/ML Model', 'Social Impact'],
+  },
+  {
+    id: 'ccc',
+    name: 'Canadian Computing Competition (CCC)',
+    kind: 'contest',
+    selectivity: 3,
+    regions: ['CA'],
+    url: 'https://cemc.uwaterloo.ca/contests/ccc',
+    blurb: "University of Waterloo's programming contest — a skills test, not a project submission. Written at school (a teacher registers); top Senior scorers are invited to the Canadian Computing Olympiad.",
+    timing: 'Usually February',
+    types: ['Web App', 'Mobile App', 'Game', 'AI/ML Model', 'Data Science', 'Other'],
+  },
+  {
+    id: 'skills-ontario',
+    name: 'Skills Ontario Competition',
+    kind: 'competition',
+    selectivity: 2,
+    regions: ['CA'],
+    url: 'https://www.skillsontario.com/',
+    blurb: 'Ontario-only provincial contests including coding, VEX robotics, graphic design and the trades. Usually entered through your school or board.',
+    timing: 'Provincials in May',
+    types: ['Robotics', 'Hardware', 'Web App', 'Art/Design', 'Other'],
+  },
+  {
+    id: 'shad',
+    name: 'Shad',
+    kind: 'program',
+    selectivity: 4,
+    regions: ['CA'],
+    url: 'https://www.shad.ca/',
+    blurb: 'Month-long summer STEAM and entrepreneurship program for Grade 10–11 students. Projects you have actually built make for a much stronger application.',
+    timing: 'Applications open mid-September, close early winter',
+    types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Business/Startup', 'Social Impact', 'Web App', 'Mobile App', 'Other'],
+  },
+  {
+    id: 'schulich',
+    name: 'Schulich Leader Scholarships',
+    kind: 'scholarship',
+    selectivity: 5,
+    regions: ['CA'],
+    url: 'https://www.schulichleaders.com/',
+    blurb: 'Major undergraduate scholarship for graduating students heading into science, tech, engineering or entrepreneurship. Each school nominates one student, so make your projects known to your guidance office early.',
+    timing: 'School nominations due in winter',
+    types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Business/Startup', 'Web App', 'Mobile App'],
+  },
+  {
+    id: 'loran',
+    name: 'Loran Award',
+    kind: 'scholarship',
+    selectivity: 5,
+    regions: ['CA'],
+    url: 'https://loranscholar.ca/',
+    blurb: 'Grade 12 award that weighs character, service and leadership, not just grades. Projects with real community impact are strong evidence.',
+    timing: 'Applications due mid-October',
+    types: ['Social Impact', 'Business/Startup', 'Research', 'Web App', 'Mobile App', 'Other'],
+  },
+
   // ---- Recognition / general ----
   {
     id: 'ncwit',
+    regions: ['US'],
     name: 'NCWIT Aspirations in Computing',
     kind: 'competition',
     selectivity: 2,
@@ -269,8 +378,19 @@ export const TIER_META = {
 
 export const TIER_ORDER = ['fit', 'safe', 'reach']
 
-// Venues worth showing the model, narrowed by project type so the prompt stays small.
-export function candidatesFor(projectType) {
-  const matched = VENUES.filter(v => v.types.includes(projectType))
-  return matched.length >= 5 ? matched : VENUES
+// Can a student from this profile.country enter the venue? Unknown country
+// shows everything rather than hiding venues the student may be eligible for.
+export function isEligible(venue, country) {
+  if (!venue.regions) return true
+  const region = REGION_BY_COUNTRY[country]
+  if (!country) return true
+  return !!region && venue.regions.includes(region)
+}
+
+// Venues worth showing the model: only ones the student can enter, narrowed by
+// project type so the prompt stays small.
+export function candidatesFor(projectType, country) {
+  const eligible = VENUES.filter(v => isEligible(v, country))
+  const matched = eligible.filter(v => v.types.includes(projectType))
+  return matched.length >= 5 ? matched : eligible
 }

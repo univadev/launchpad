@@ -114,7 +114,7 @@ Return a JSON object with exactly these keys:
 
 "gaps": Array of 2-4 objects, each {"issue": "...", "fix": "..."}. The single most valuable part of your response. "issue" names a specific weakness — unmeasured impact, no evaluation, unclear problem, trivial scope, missing comparison to existing solutions. "fix" is one concrete action to take this week. Be specific to THIS project; generic advice is useless.
 
-"skills_demonstrated": Array of 2-4 short strings — concrete skills a college or internship reviewer would credit.
+"skills_demonstrated": Array of 2-4 short strings — concrete skills a university admissions or internship reviewer would credit.
 
 "venue_ids": Array of 4-6 ids chosen ONLY from the list below, matched to this project's subject.
 Give a real spread, not just the easy options:

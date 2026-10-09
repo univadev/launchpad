@@ -5,10 +5,11 @@ import {
   CheckCircle2, Wrench, Award, ChevronRight, Plus, Check, TrendingUp,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { candidatesFor, VENUE_BY_ID, tierFor, TIER_META, TIER_ORDER, VENUE_KINDS } from '../lib/venues'
+import { candidatesFor, isEligible, VENUE_BY_ID, tierFor, TIER_META, TIER_ORDER, VENUE_KINDS } from '../lib/venues'
 import { trackVenue, notifySubmissionsChanged } from '../lib/submissions'
 import { formatDate } from '../lib/utils'
 import { postApi } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 
 // Cached per project for the browser session so re-opening a project does not
 // spend another API call. "Run again" bypasses it deliberately.
@@ -134,6 +135,9 @@ function VenueRow({ venue, tracked, onTrack, busy }) {
 }
 
 export default function AIFeedbackPanel({ project }) {
+  // The panel is owner-only, so the viewer's country is the student's country.
+  const { profile } = useAuth()
+  const country = profile?.country || ''
   const [data, setData] = useState(() => readCache(project.id))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -186,7 +190,7 @@ export default function AIFeedbackPanel({ project }) {
     setLoading(true)
     setError('')
     try {
-      const candidates = candidatesFor(project.project_type).map(v => ({
+      const candidates = candidatesFor(project.project_type, country).map(v => ({
         id: v.id,
         name: v.name,
         kind: v.kind,
@@ -238,7 +242,8 @@ export default function AIFeedbackPanel({ project }) {
   if (data?.venue_ids?.length) {
     for (const id of data.venue_ids) {
       const venue = VENUE_BY_ID[id]
-      if (!venue) continue
+      // Also hides venues from saved runs made before eligibility filtering.
+      if (!venue || !isEligible(venue, country)) continue
       const tier = tierFor(venue, data.readiness)
       ;(tiered[tier] ||= []).push(venue)
     }
@@ -361,6 +366,13 @@ export default function AIFeedbackPanel({ project }) {
                 Track one to set a deadline and log the result in your{' '}
                 <Link to="/tracker" className="text-brand-300 hover:underline">tracker</Link>.
               </p>
+              {!country && (
+                <p className="text-xs text-zinc-400 mb-3">
+                  Some of these are country-restricted.{' '}
+                  <Link to="/settings" className="text-brand-300 hover:underline">Add your country</Link>{' '}
+                  to only see ones you can enter.
+                </p>
+              )}
               {trackError && <p className="text-xs text-red-300 mb-3">{trackError}</p>}
               <div className="space-y-5">
                 {TIER_ORDER.filter(t => tiered[t]?.length).map(tier => (
