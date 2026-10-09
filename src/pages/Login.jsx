@@ -36,8 +36,8 @@ export default function Login() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
           <Link to="/" className="inline-flex items-center gap-2 font-bold text-xl text-white logo">
-            <img src="/favicon.svg" alt="Univa Dev" className="w-8 h-8" />
-            Univa Dev
+            <img src="/favicon.svg" alt="Launchpad" className="w-8 h-8" />
+            Launchpad
           </Link>
         </div>
         <SignIn

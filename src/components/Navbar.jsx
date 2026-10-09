@@ -68,8 +68,8 @@ export default function Navbar() {
   <nav className="fixed top-0 left-0 right-0 z-40 bg-[#0a0a0a] border-b border-white/10">
     <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
       <Link to="/" className="flex items-center gap-2 font-bold text-lg text-zinc-200">
-        <img src="/favicon.svg" alt="Univa Dev" className="w-8 h-8" />
-        <span className="hidden md:block">Univa Dev</span>
+        <img src="/favicon.svg" alt="Launchpad" className="w-8 h-8" />
+        <span className="hidden md:block">Launchpad</span>
       </Link>
       <div className="flex items-center gap-2">
         <Link to="/login" className="btn-secondary text-sm py-1.5 px-4">
@@ -88,7 +88,7 @@ export default function Navbar() {
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/feed" className="flex items-center gap-2 font-bold text-lg text-zinc-200">
-          <img src="/favicon.svg" alt="Univa Dev" className="w-8 h-8" />
+          <img src="/favicon.svg" alt="Launchpad" className="w-8 h-8" />
           <span className="hidden md:block">Launchpad</span>
         </Link>
 

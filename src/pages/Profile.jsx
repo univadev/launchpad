@@ -53,7 +53,7 @@ export default function Profile() {
   // react-to-print v3 takes contentRef; the v2 `content` callback is ignored.
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `${profile?.full_name} — Univa Dev Portfolio`,
+    documentTitle: `${profile?.full_name} — Launchpad Portfolio`,
   })
 
   useEffect(() => {
@@ -559,7 +559,7 @@ export default function Profile() {
         ))}
 
         <div className="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-400 text-center">
-          Generated from Univa Dev · univadev.com · {new Date().toLocaleDateString()}
+          Generated from Launchpad by Univa Dev · univadev.com · {new Date().toLocaleDateString()}
         </div>
       </div>
     </div>
