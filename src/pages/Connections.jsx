@@ -77,7 +77,7 @@ export default function Connections() {
   async function decline(connId) {
     setBusyId(connId)
     setActionError('')
-    const { error } = await supabase.from('connections').delete().eq('id', connId)
+    const { error } = await supabase.from('connections').delete().eq('id', connId).eq('status', 'pending')
     if (error) {
       console.error('decline connection error:', error)
       setActionError(error.message || 'Failed to decline request')

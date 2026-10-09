@@ -126,7 +126,29 @@ export default function Notifications() {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    setNotifications(data || [])
+    // A request may have been answered elsewhere (Connections page, profile)
+    // or cancelled by the sender. Only offer Accept/Decline while the
+    // connection is still pending; otherwise Decline would delete an
+    // already-accepted connection.
+    const requestConnIds = (data || [])
+      .filter(n => n.type === 'connection_request' && n.content?.connection_id && !n.content?.resolved)
+      .map(n => n.content.connection_id)
+    let pendingIds = new Set()
+    if (requestConnIds.length) {
+      const { data: pending } = await supabase
+        .from('connections')
+        .select('id')
+        .in('id', requestConnIds)
+        .eq('status', 'pending')
+      pendingIds = new Set((pending || []).map(c => c.id))
+    }
+    const withStatus = (data || []).map(n =>
+      n.type === 'connection_request' && n.content?.connection_id && !n.content?.resolved && !pendingIds.has(n.content.connection_id)
+        ? { ...n, content: { ...n.content, resolved: true } }
+        : n
+    )
+
+    setNotifications(withStatus)
     setLoading(false)
 
     // Auto-clear the unread badge as soon as the user opens this page.
@@ -155,7 +177,7 @@ export default function Notifications() {
         .update({ status: 'accepted', responded_at: new Date().toISOString() })
         .eq('id', connId)
     } else {
-      await supabase.from('connections').delete().eq('id', connId)
+      await supabase.from('connections').delete().eq('id', connId).eq('status', 'pending')
     }
     const newContent = { ...(notif.content || {}), resolved: true, accepted: accept }
     await supabase
