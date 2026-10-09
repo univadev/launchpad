@@ -3,8 +3,9 @@ import { UserButton } from '@clerk/react'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { countDueSoon } from '../lib/submissions'
 import {
-  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users, Briefcase
+  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users, Briefcase, Target
 } from 'lucide-react'
 
 export default function Navbar() {
@@ -12,6 +13,7 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const [unreadCount, setUnreadCount] = useState(0)
+  const [dueSoonCount, setDueSoonCount] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
@@ -26,6 +28,15 @@ export default function Navbar() {
       clearInterval(interval)
       window.removeEventListener('notifications:read', onRead)
     }
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    const refresh = () => countDueSoon(user.id).then(setDueSoonCount)
+    refresh()
+    // Deadlines move slowly; refresh on tracker edits instead of polling.
+    window.addEventListener('submissions:changed', refresh)
+    return () => window.removeEventListener('submissions:changed', refresh)
   }, [user])
 
   async function fetchUnread() {
@@ -48,6 +59,7 @@ export default function Navbar() {
     { to: '/discover', icon: Compass, label: 'Discover' },
     { to: '/connections', icon: Users, label: 'Connections' },
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
+    { to: '/tracker', icon: Target, label: 'Tracker', badge: dueSoonCount },
     { to: '/internships', icon: Briefcase, label: 'Internships' },
   ]
 
