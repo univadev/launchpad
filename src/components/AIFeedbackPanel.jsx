@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Sparkles, AlertCircle, RefreshCw, ExternalLink,
-  CheckCircle2, Wrench, Award, ChevronRight, Plus, Check,
+  CheckCircle2, Wrench, Award, ChevronRight, Plus, Check, TrendingUp,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { candidatesFor, VENUE_BY_ID, tierFor, TIER_META, TIER_ORDER, VENUE_KINDS } from '../lib/venues'
 import { trackVenue, notifySubmissionsChanged } from '../lib/submissions'
+import { formatDate } from '../lib/utils'
 
 // Cached per project for the browser session so re-opening a project does not
 // spend another API call. "Run again" bypasses it deliberately.
@@ -59,6 +60,38 @@ function ReadinessBar({ score, label, rationale }) {
   )
 }
 
+// Score per saved run, oldest first. Shown once there are at least two runs.
+function ReadinessHistory({ history }) {
+  if (history.length < 2) return null
+  const first = history[0]
+  const last = history[history.length - 1]
+  const delta = last.readiness - first.readiness
+  const summary = delta > 0
+    ? `Up ${delta} since ${formatDate(first.created_at)}`
+    : delta < 0
+      ? `Down ${-delta} since ${formatDate(first.created_at)}`
+      : `Holding steady since ${formatDate(first.created_at)}`
+
+  return (
+    <div className="mb-5 -mt-2">
+      <div className="flex items-center gap-2 text-xs text-zinc-500 mb-2">
+        <TrendingUp size={13} className={delta > 0 ? 'text-accent-500' : ''} />
+        <span>{summary} · {history.length} runs</span>
+      </div>
+      <div className="flex items-end gap-1 h-8" role="img" aria-label={`Readiness over time: ${history.map(h => h.readiness).join(', ')}`}>
+        {history.map(h => (
+          <div
+            key={h.id}
+            title={`${h.readiness}/5 · ${formatDate(h.created_at)}`}
+            className="flex-1 max-w-6 rounded-sm bg-brand-500/70"
+            style={{ height: `${(h.readiness / 5) * 100}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function VenueRow({ venue, tracked, onTrack, busy }) {
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-[#0c0c0c] border border-white/10 hover:border-white/20 transition-colors">
@@ -107,6 +140,24 @@ export default function AIFeedbackPanel({ project }) {
   const [trackedIds, setTrackedIds] = useState(() => new Set())
   const [trackingId, setTrackingId] = useState(null)
   const [trackError, setTrackError] = useState('')
+  // Saved runs, oldest first: [{ id, readiness, created_at }]
+  const [history, setHistory] = useState([])
+
+  // Load the latest saved run (falls back to the session cache if the
+  // project_feedback table isn't there yet — see db/migrations/011).
+  useEffect(() => {
+    supabase
+      .from('project_feedback')
+      .select('id, readiness, payload, created_at')
+      .eq('project_id', project.id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data: rows, error: err }) => {
+        if (err || !rows?.length) return
+        setData(rows[0].payload)
+        setHistory(rows.map(({ id, readiness, created_at }) => ({ id, readiness, created_at })).reverse())
+      })
+  }, [project.id])
 
   useEffect(() => {
     supabase
@@ -166,6 +217,18 @@ export default function AIFeedbackPanel({ project }) {
 
       setData(payload)
       writeCache(project.id, payload)
+
+      const { data: saved } = await supabase
+        .from('project_feedback')
+        .insert({
+          project_id: project.id,
+          user_id: project.user_id,
+          readiness: payload.readiness,
+          payload,
+        })
+        .select('id, readiness, created_at')
+        .single()
+      if (saved) setHistory(prev => [...prev, saved].slice(-20))
     } catch (err) {
       setError(err.message || 'Something went wrong. Try again.')
     } finally {
@@ -243,6 +306,7 @@ export default function AIFeedbackPanel({ project }) {
             label={data.readiness_label}
             rationale={data.readiness_rationale}
           />
+          <ReadinessHistory history={history} />
 
           {data.strengths?.length > 0 && (
             <div className="mb-5">
