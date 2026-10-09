@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MessageSquare, ExternalLink, Clock, ThumbsUp, Eye } from 'lucide-react'
-import { timeAgo } from '../lib/utils'
+import { timeAgo, safeExternalUrl } from '../lib/utils'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { recordView } from '../lib/viewTracker'
@@ -155,9 +155,9 @@ export default function ProjectCard({ project, onReactionToggle }) {
               {commentCount > 0 && <span>{commentCount}</span>}
               <span>Comments</span>
             </Link>
-            {project.link && (
+            {safeExternalUrl(project.link) && (
               <a
-                href={project.link}
+                href={safeExternalUrl(project.link)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors"

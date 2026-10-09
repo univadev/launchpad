@@ -40,6 +40,20 @@ export function normalizeUrl(value) {
   return `https://${trimmed}`;
 }
 
+// For rendering a user-supplied URL as a link. Only http(s) survives, so a
+// stored "javascript:..." link can't run script when clicked (React 18 does
+// not block those). Returns null when the value isn't a usable web URL.
+export function safeExternalUrl(value) {
+  const normalized = normalizeUrl(value);
+  if (!normalized) return null;
+  try {
+    const url = new URL(normalized);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 // Streak update logic
 export function calculateStreak(lastPostDate, currentStreak) {
   if (!lastPostDate) return { newStreak: 1 };

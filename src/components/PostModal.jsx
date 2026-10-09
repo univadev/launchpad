@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { X, Plus, Sparkles, Upload, Image, ChevronDown, ChevronUp, AlertCircle, Check, Lightbulb, Target } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { PROJECT_TYPES, TECH_SUGGESTIONS, calculateStreak } from '../lib/utils'
+import { PROJECT_TYPES, TECH_SUGGESTIONS, calculateStreak, safeExternalUrl } from '../lib/utils'
 import { candidatesFor } from '../lib/venues'
 
 const MAX_IMAGE_SIZE = 800 // px
@@ -114,6 +114,12 @@ export default function PostModal({ onClose, onSuccess }) {
       return
     }
 
+    const link = form.link.trim() ? safeExternalUrl(form.link) : null
+    if (form.link.trim() && !link) {
+      setError('Project link must be a web address, like https://github.com/you/project.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
@@ -160,7 +166,7 @@ export default function PostModal({ onClose, onSuccess }) {
           description: form.description.trim(),
           project_type: form.project_type,
           tech_stack: form.tech_stack,
-          link: form.link.trim() || null,
+          link,
           image_url: imageUrl,
           impact_metrics: form.impact_metrics.trim() || null,
           collaborator_ids: form.collaborator_ids,

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { timeAgo, formatDate } from '../lib/utils'
+import { timeAgo, formatDate, safeExternalUrl } from '../lib/utils'
 import ReactMarkdown from 'react-markdown'
 import { ArrowLeft, ExternalLink, MessageSquare, Send, Trash2, Reply, Clock, AlertCircle, ThumbsUp, X, Eye } from 'lucide-react'
 import { recordView } from '../lib/viewTracker'
@@ -296,9 +296,9 @@ export default function PostDetail() {
             )}
 
             {/* Link */}
-            {project.link && (
+            {safeExternalUrl(project.link) && (
               <a
-                href={project.link}
+                href={safeExternalUrl(project.link)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-[#111111] hover:bg-[#1a1a1a] border border-white/10 rounded-lg text-sm font-medium text-zinc-200 transition-colors mb-5"
