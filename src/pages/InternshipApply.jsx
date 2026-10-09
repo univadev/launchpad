@@ -1,9 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Send, CheckCircle, AlertCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { INTERNSHIPS } from './Internships'
+
+// The form is long; keep an in-progress draft per user + role in this browser
+// so a refresh or accidental back-navigation doesn't wipe it.
+function draftKey(userId, internshipId) {
+  return `internship-draft:${userId}:${internshipId}`
+}
+
+function readDraft(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function writeDraft(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // Storage unavailable (private mode / full); the form still works.
+  }
+}
+
+function clearDraft(key) {
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    // ignore
+  }
+}
 
 const CURRENT_YEAR = new Date().getFullYear()
 const TODAY = new Date().toISOString().split('T')[0]
@@ -81,7 +112,8 @@ export default function InternshipApply() {
   const internship = INTERNSHIPS.find(i => i.id === id)
 
   const nameParts = (profile?.full_name || '').trim().split(' ')
-  const [form, setForm] = useState({
+  const storageKey = draftKey(user?.id, id)
+  const [form, setForm] = useState(() => ({
     first_name:                nameParts[0] || '',
     last_name:                 nameParts.slice(1).join(' ') || '',
     email:                     user?.email || '',
@@ -108,12 +140,30 @@ export default function InternshipApply() {
     career_goal:               '',
     inspiration:               '',
     why_interested:            '',
-  })
+    ...readDraft(storageKey),
+  }))
 
   const [errors, setErrors]           = useState({})
   const [submitError, setSubmitError] = useState('')
   const [loading, setLoading]         = useState(false)
   const [submitted, setSubmitted]     = useState(false)
+  const [alreadyApplied, setAlreadyApplied] = useState(false)
+
+  useEffect(() => {
+    if (!submitted) writeDraft(storageKey, form)
+  }, [form, storageKey, submitted])
+
+  // Catch a repeat application before the student fills in 30 fields, not after.
+  useEffect(() => {
+    if (!user || !internship) return
+    supabase
+      .from('applications')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('internship_id', id)
+      .maybeSingle()
+      .then(({ data }) => setAlreadyApplied(!!data))
+  }, [user?.id, id])
 
   if (!internship) {
     return (
@@ -268,8 +318,26 @@ export default function InternshipApply() {
       return
     }
 
+    clearDraft(storageKey)
     setSubmitted(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  if (alreadyApplied && !submitted) {
+    return (
+      <div className="pt-14 min-h-screen flex items-center justify-center">
+        <div className="max-w-md w-full px-4 text-center flex flex-col items-center gap-5">
+          <CheckCircle size={32} className="text-accent-500" />
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2">You've already applied</h2>
+            <p className="text-sm text-zinc-400 leading-relaxed">
+              Your application for {internship.role} at {internship.company} is in. We'll reach out if you're shortlisted.
+            </p>
+          </div>
+          <Link to="/internships" className="btn-primary">Back to Internships</Link>
+        </div>
+      </div>
+    )
   }
 
   if (submitted) {
