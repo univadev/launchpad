@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import ProjectCard from '../components/ProjectCard'
 import AdmissionsProfile, { AdmissionsSummary, hasAdmissionsData } from '../components/AdmissionsProfile'
+import { VENUE_BY_ID } from '../lib/venues'
+import { STATUS_META, WIN_STATUSES } from '../lib/submissions'
 import { formatDate, timeAgo, normalizeUrl } from '../lib/utils'
 import {
   MapPin, GraduationCap, Calendar, Zap, Share2, Printer,
@@ -33,6 +35,7 @@ export default function Profile() {
 
   const [profile, setProfile] = useState(null)
   const [projects, setProjects] = useState([])
+  const [wins, setWins] = useState([])
   const [totalReactions, setTotalReactions] = useState(0)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -100,6 +103,15 @@ export default function Profile() {
     }))
 
     setProjects(enriched)
+
+    // Accepted / award results from the submission tracker (public per RLS).
+    const { data: winsData } = await supabase
+      .from('venue_submissions')
+      .select('id, venue_id, status, result_note, project_id, projects(title)')
+      .eq('user_id', profileData.id)
+      .in('status', WIN_STATUSES)
+      .order('updated_at', { ascending: false })
+    setWins(winsData || [])
 
     // Total reactions
     const total = enriched.reduce((sum, p) => {
@@ -425,6 +437,47 @@ export default function Profile() {
             ) : (
               <AdmissionsSummary data={profile.admissions_profile} />
             )}
+          </div>
+        )}
+
+        {/* Wins — accepted / award results logged in the submission tracker */}
+        {wins.length > 0 && (
+          <div className="card p-5 mb-6">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="font-semibold text-white flex items-center gap-2">
+                <Trophy size={16} />
+                Wins
+              </h2>
+              {isOwn && (
+                <Link to="/tracker" className="text-xs text-brand-300 hover:underline">Manage in tracker</Link>
+              )}
+            </div>
+            <div className="space-y-2">
+              {wins.map(w => {
+                const venue = VENUE_BY_ID[w.venue_id]
+                return (
+                  <div key={w.id} className="flex items-start gap-3 p-3 rounded-lg bg-[#0c0c0c] border border-white/10">
+                    <span className={`badge border shrink-0 mt-0.5 ${STATUS_META[w.status].style}`}>
+                      {STATUS_META[w.status].label}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-medium">
+                        {venue ? (
+                          <a href={venue.url} target="_blank" rel="noopener noreferrer" className="hover:text-brand-300">
+                            {venue.name}
+                          </a>
+                        ) : w.venue_id}
+                        {w.result_note && <span className="text-zinc-400 font-normal"> — {w.result_note}</span>}
+                      </p>
+                      <Link to={`/post/${w.project_id}`} className="text-xs text-zinc-500 hover:text-brand-300">
+                        {w.projects?.title || 'View project'}
+                      </Link>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-[11px] text-zinc-600 mt-3">Self-reported by {isOwn ? 'you' : profile.full_name || 'this student'}.</p>
           </div>
         )}
 
