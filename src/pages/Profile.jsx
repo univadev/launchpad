@@ -49,8 +49,9 @@ export default function Profile() {
 
   const cleanUsername = username?.replace(/^@/, '')
 
+  // react-to-print v3 takes contentRef; the v2 `content` callback is ignored.
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     documentTitle: `${profile?.full_name} — Univa Dev Portfolio`,
   })
 
@@ -305,7 +306,7 @@ export default function Profile() {
                     </>
                   ) : null}
                   <button
-                    onClick={handlePrint}
+                    onClick={() => handlePrint()}
                     className="btn-ghost text-sm py-1.5"
                     title="Export portfolio as PDF"
                   >
@@ -532,7 +533,7 @@ export default function Profile() {
           {[
             { label: 'Projects', value: projects.length },
             { label: 'Total reactions', value: totalReactions },
-            { label: 'Best streak', value: `${profile.current_streak || 0} days` },
+            { label: 'Current streak', value: `${profile.current_streak || 0} days` },
           ].map(({ label, value }) => (
             <div key={label} className="text-center p-3 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-xl font-bold text-gray-900">{value}</p>
@@ -540,6 +541,19 @@ export default function Profile() {
             </div>
           ))}
         </div>
+
+        {wins.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Results</h2>
+            {wins.map(w => (
+              <p key={w.id} className="text-sm text-gray-700 mb-1">
+                <span className="font-semibold">{VENUE_BY_ID[w.venue_id]?.name || w.venue_id}</span>
+                {' — '}{w.result_note || STATUS_META[w.status].label}
+                <span className="text-gray-500"> ({w.projects?.title || 'project'})</span>
+              </p>
+            ))}
+          </div>
+        )}
 
         <h2 className="text-lg font-bold text-gray-900 mb-3">Projects</h2>
         {projects.map(p => (
