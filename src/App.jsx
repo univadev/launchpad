@@ -38,6 +38,7 @@ import Connections from './pages/Connections'
 import Internships from './pages/Internships'
 import InternshipApply from './pages/InternshipApply'
 import Tracker from './pages/Tracker'
+import Coach from './pages/Coach'
 
 // Wraps protected routes — if logged in but no profile yet, send to onboarding
 function RequireProfile({ children }) {
@@ -129,6 +130,11 @@ function AppRoutes() {
         <Route path="/tracker" element={
           <RequireProfile>
             <Tracker />
+          </RequireProfile>
+        } />
+        <Route path="/coach" element={
+          <RequireProfile>
+            <Coach />
           </RequireProfile>
         } />
         <Route path="/:username" element={<Profile />} />

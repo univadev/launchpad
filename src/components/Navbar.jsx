@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { countDueSoon } from '../lib/submissions'
 import {
-  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users, Briefcase, Target
+  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users, Briefcase, Target, GraduationCap
 } from 'lucide-react'
 
 export default function Navbar() {
@@ -60,6 +60,7 @@ export default function Navbar() {
     { to: '/connections', icon: Users, label: 'Connections' },
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
     { to: '/tracker', icon: Target, label: 'Tracker', badge: dueSoonCount },
+    { to: '/coach', icon: GraduationCap, label: 'Coach' },
     { to: '/internships', icon: Briefcase, label: 'Internships' },
   ]
 
@@ -97,6 +98,7 @@ export default function Navbar() {
             <Link
               key={to}
               to={to}
+              title={label}
               className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 location.pathname === to
                   ? 'bg-brand-600/20 text-brand-400'
@@ -104,7 +106,8 @@ export default function Navbar() {
               }`}
             >
               <Icon size={18} />
-              <span>{label}</span>
+              {/* Seven links don't fit with labels at md; show them from lg up. */}
+              <span className="hidden lg:inline">{label}</span>
               {badge > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-brand-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
                   {badge > 9 ? '9+' : badge}
