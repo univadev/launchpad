@@ -83,8 +83,17 @@
   padding-left: 1.5em;
   margin-bottom: 0.75em;
 }
+.prose-dark ul {
+  list-style: disc;
+}
+.prose-dark ol {
+  list-style: decimal;
+}
 .prose-dark li {
   margin-bottom: 0.25em;
+}
+.prose-dark h2 {
+  font-size: 1.125rem;
 }
 .prose-dark code {
   background: #1f2937;

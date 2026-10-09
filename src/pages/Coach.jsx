@@ -277,6 +277,7 @@ export default function Coach() {
         <p className="text-sm text-zinc-400 mt-1 mb-6">
           Paste a question from a university application. The coach plans an answer from your real projects,
           results and activities, or reviews your draft. It won't write the answer for you — that has to be yours.
+          New to this? Read <Link to="/guides/projects-on-applications" className="text-brand-300 hover:underline">making a project count on an application</Link>.
         </p>
 
         <div className="grid md:grid-cols-[1fr_260px] gap-6">

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { countDueSoon } from '../lib/submissions'
 import {
-  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users, Briefcase, Target, GraduationCap
+  Home, Compass, Bell, Settings, LogOut, Zap, Menu, X, Users, Briefcase, Target, GraduationCap, BookOpen
 } from 'lucide-react'
 
 export default function Navbar() {
@@ -72,6 +72,9 @@ export default function Navbar() {
         <span className="hidden md:block">Launchpad</span>
       </Link>
       <div className="flex items-center gap-2">
+        <Link to="/guides" className="text-sm text-zinc-400 hover:text-zinc-200 px-2">
+          Guides
+        </Link>
         <Link to="/login" className="btn-secondary text-sm py-1.5 px-4">
           Log in
         </Link>
@@ -136,6 +139,11 @@ export default function Navbar() {
             }}
           />
 
+          {/* Guides */}
+          <Link to="/guides" title="Guides" className="hidden md:flex p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
+            <BookOpen size={18} />
+          </Link>
+
           {/* Settings */}
           <Link to="/settings" className="hidden md:flex p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
             <Settings size={18} />
@@ -191,6 +199,14 @@ export default function Navbar() {
               )}
             </Link>
           ))}
+          <Link
+            to="/guides"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-[#1a1a1a] transition-colors"
+          >
+            <BookOpen size={20} />
+            Guides
+          </Link>
           <Link
             to="/settings"
             onClick={() => setMobileOpen(false)}

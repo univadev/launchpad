@@ -7,6 +7,8 @@
 //
 // selectivity: 1 = open to nearly all entrants, 5 = national/international elite.
 // types: which PROJECT_TYPES (see utils.js) the venue realistically accepts.
+// months: approximate months (1-12) entries are due or the event runs, for the
+//   season calendar. Only set where the timing is consistent year to year.
 // regions: country codes whose students are eligible (see REGION_BY_COUNTRY).
 //   Omitted = open internationally. Check eligibility on the official site
 //   before adding a venue — recommending a contest a student can't enter is
@@ -39,6 +41,7 @@ export const VENUES = [
     url: 'https://www.societyforscience.org/isef/',
     blurb: 'International Science and Engineering Fair. You qualify through an affiliated fair first — in Canada, that means the Canada-Wide Science Fair, then selection to Team Canada-ISEF.',
     timing: 'Regionals winter · finals May',
+    months: [5],
     types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Social Impact'],
   },
   {
@@ -50,6 +53,7 @@ export const VENUES = [
     url: 'https://www.societyforscience.org/regeneron-sts/',
     blurb: 'Seniors only, original research. The most selective pre-college research competition in the US.',
     timing: 'Applications due November',
+    months: [11],
     types: ['Research', 'Data Science', 'AI/ML Model', 'Hardware'],
   },
   {
@@ -61,6 +65,7 @@ export const VENUES = [
     url: 'https://www.jshs.org/',
     blurb: 'Regional symposium where you present original STEM research to judges. Regional-first structure makes it far more reachable than ISEF.',
     timing: 'Regionals Jan–Mar',
+    months: [1, 2, 3],
     types: ['Research', 'Data Science', 'AI/ML Model', 'Hardware', 'Robotics'],
   },
   {
@@ -72,6 +77,7 @@ export const VENUES = [
     url: 'https://think.mit.edu/',
     blurb: 'Funds and mentors projects that have NOT been built yet — you apply with a proposal, not a finished product.',
     timing: 'Applications due January',
+    months: [1],
     types: ['Research', 'Hardware', 'Robotics', 'AI/ML Model'],
   },
   {
@@ -83,6 +89,7 @@ export const VENUES = [
     url: 'https://www.davidsongifted.org/fellows-scholarship/',
     blurb: 'Scholarships up to $50k for extraordinarily deep work. Expects something close to professional quality.',
     timing: 'Applications due February',
+    months: [2],
     types: ['Research', 'AI/ML Model', 'Hardware', 'Art/Design', 'Data Science'],
   },
 
@@ -138,6 +145,7 @@ export const VENUES = [
     url: 'https://www.congressionalappchallenge.us/',
     blurb: 'You compete only within your congressional district, so the field is small. Genuinely one of the best odds-to-prestige ratios available.',
     timing: 'Submissions due late October',
+    months: [10],
     types: ['Web App', 'Mobile App', 'Game', 'AI/ML Model', 'Social Impact', 'Data Science'],
   },
   {
@@ -190,6 +198,7 @@ export const VENUES = [
     url: 'https://diamondchallenge.org/',
     blurb: 'High school entrepreneurship competition run by U. Delaware. Submit a written concept, top teams pitch live.',
     timing: 'Submissions due January',
+    months: [1],
     types: ['Business/Startup', 'Social Impact', 'Web App', 'Mobile App'],
   },
   {
@@ -232,6 +241,7 @@ export const VENUES = [
     url: 'https://www.firstinspires.org/',
     blurb: 'Team robotics leagues with regional events worldwide. Best route if your project is mechanical or embedded.',
     timing: 'Season Jan–Apr',
+    months: [3, 4],
     types: ['Robotics', 'Hardware'],
   },
 
@@ -245,6 +255,7 @@ export const VENUES = [
     url: 'https://youthscience.ca/',
     blurb: 'Enter the regional fair for your home or school address (or the YSC Virtual fair if your area has none). Rules and grades vary by fair. Top projects advance to the Canada-Wide Science Fair.',
     timing: 'Most regional fairs run Mar–Apr',
+    months: [3, 4],
     types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Social Impact', 'Other'],
   },
   {
@@ -256,6 +267,7 @@ export const VENUES = [
     url: 'https://youthscience.ca/',
     blurb: "Canada's national STEM fair, run by Youth Science Canada. You get there by winning a spot at your regional fair; it's also the route to Team Canada-ISEF.",
     timing: 'National fair in May',
+    months: [5],
     types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Social Impact', 'Other'],
   },
   {
@@ -267,6 +279,7 @@ export const VENUES = [
     url: 'https://www.biogenius.ca/',
     blurb: 'Life-science and biotech research competition for high school and CEGEP students. Start with a proposal, then compete regionally and nationally.',
     timing: 'Proposals usually due mid-November (varies by region)',
+    months: [11],
     types: ['Research', 'Data Science', 'AI/ML Model', 'Social Impact'],
   },
   {
@@ -278,6 +291,7 @@ export const VENUES = [
     url: 'https://cemc.uwaterloo.ca/contests/ccc',
     blurb: "University of Waterloo's programming contest — a skills test, not a project submission. Written at school (a teacher registers); top Senior scorers are invited to the Canadian Computing Olympiad.",
     timing: 'Usually February',
+    months: [2],
     types: ['Web App', 'Mobile App', 'Game', 'AI/ML Model', 'Data Science', 'Other'],
   },
   {
@@ -289,6 +303,7 @@ export const VENUES = [
     url: 'https://www.skillsontario.com/',
     blurb: 'Ontario-only provincial contests including coding, VEX robotics, graphic design and the trades. Usually entered through your school or board.',
     timing: 'Provincials in May',
+    months: [5],
     types: ['Robotics', 'Hardware', 'Web App', 'Art/Design', 'Other'],
   },
   {
@@ -300,6 +315,7 @@ export const VENUES = [
     url: 'https://www.shad.ca/',
     blurb: 'Month-long summer STEAM and entrepreneurship program for Grade 10–11 students. Projects you have actually built make for a much stronger application.',
     timing: 'Applications open mid-September, close early winter',
+    months: [12, 1],
     types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Business/Startup', 'Social Impact', 'Web App', 'Mobile App', 'Other'],
   },
   {
@@ -311,6 +327,7 @@ export const VENUES = [
     url: 'https://www.schulichleaders.com/',
     blurb: 'Major undergraduate scholarship for graduating students heading into science, tech, engineering or entrepreneurship. Each school nominates one student, so make your projects known to your guidance office early.',
     timing: 'School nominations due in winter',
+    months: [1, 2],
     types: ['Research', 'Hardware', 'AI/ML Model', 'Data Science', 'Robotics', 'Business/Startup', 'Web App', 'Mobile App'],
   },
   {
@@ -322,6 +339,7 @@ export const VENUES = [
     url: 'https://loranscholar.ca/',
     blurb: 'Grade 12 award that weighs character, service and leadership, not just grades. Projects with real community impact are strong evidence.',
     timing: 'Applications due mid-October',
+    months: [10],
     types: ['Social Impact', 'Business/Startup', 'Research', 'Web App', 'Mobile App', 'Other'],
   },
 
@@ -411,4 +429,17 @@ export function reachableNow(projectType, readiness, country) {
   return VENUES.filter(v =>
     isEligible(v, country) && v.types.includes(projectType) && tierFor(v, readiness) !== 'reach'
   )
+}
+
+// Eligible venues grouped by typical month, starting from the current month.
+// Returns [{ month: 1-12, venues: [...] }] for months that have anything.
+export function seasonCalendar(country, from = new Date()) {
+  const start = from.getMonth() + 1
+  const out = []
+  for (let i = 0; i < 12; i++) {
+    const month = ((start - 1 + i) % 12) + 1
+    const venues = VENUES.filter(v => v.months?.includes(month) && isEligible(v, country))
+    if (venues.length) out.push({ month, venues })
+  }
+  return out
 }

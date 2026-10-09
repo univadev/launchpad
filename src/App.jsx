@@ -39,6 +39,7 @@ import Internships from './pages/Internships'
 import InternshipApply from './pages/InternshipApply'
 import Tracker from './pages/Tracker'
 import Coach from './pages/Coach'
+import Guides from './pages/Guides'
 
 // Wraps protected routes — if logged in but no profile yet, send to onboarding
 function RequireProfile({ children }) {
@@ -137,6 +138,8 @@ function AppRoutes() {
             <Coach />
           </RequireProfile>
         } />
+        <Route path="/guides" element={<Guides />} />
+        <Route path="/guides/:slug" element={<Guides />} />
         <Route path="/:username" element={<Profile />} />
         <Route path="/post/:id" element={<PostDetail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
