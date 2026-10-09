@@ -3,6 +3,10 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# Daily at 13:00 UTC (9am Eastern). See the function for what it sends.
+[functions."deadline-reminders"]
+  schedule = "0 13 * * *"
+
 [dev]
   command = "npm run dev"
   port = 8888
