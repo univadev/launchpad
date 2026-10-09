@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Sparkles, AlertCircle, RefreshCw, ExternalLink,
-  CheckCircle2, Wrench, Award, ChevronRight,
+  CheckCircle2, Wrench, Award, ChevronRight, Plus, Check,
 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 import { candidatesFor, VENUE_BY_ID, tierFor, TIER_META, TIER_ORDER, VENUE_KINDS } from '../lib/venues'
+import { trackVenue, notifySubmissionsChanged } from '../lib/submissions'
 
 // Cached per project for the browser session so re-opening a project does not
 // spend another API call. "Run again" bypasses it deliberately.
@@ -56,26 +59,43 @@ function ReadinessBar({ score, label, rationale }) {
   )
 }
 
-function VenueRow({ venue }) {
+function VenueRow({ venue, tracked, onTrack, busy }) {
   return (
-    <a
-      href={venue.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex items-start gap-3 p-3 rounded-lg bg-[#0c0c0c] border border-white/10 hover:border-white/20 transition-colors"
-    >
-      <div className="flex-1 min-w-0">
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-[#0c0c0c] border border-white/10 hover:border-white/20 transition-colors">
+      <a
+        href={venue.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex-1 min-w-0"
+      >
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-white text-sm group-hover:text-brand-300 transition-colors">
             {venue.name}
           </span>
           <span className="tag">{VENUE_KINDS[venue.kind] || venue.kind}</span>
+          <ExternalLink size={12} className="text-zinc-600 group-hover:text-zinc-300" />
         </div>
         <p className="text-sm text-zinc-400 mt-1">{venue.blurb}</p>
         <p className="text-xs text-zinc-600 mt-1">{venue.timing}</p>
-      </div>
-      <ExternalLink size={14} className="text-zinc-600 group-hover:text-zinc-300 mt-1 shrink-0" />
-    </a>
+      </a>
+      {tracked ? (
+        <Link
+          to="/tracker"
+          className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-accent-500 hover:underline mt-0.5"
+        >
+          <Check size={13} /> Tracking
+        </Link>
+      ) : (
+        <button
+          onClick={onTrack}
+          disabled={busy}
+          className="btn-secondary shrink-0 text-xs px-3 py-1"
+          title="Add to your submission tracker"
+        >
+          <Plus size={13} /> Track
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -83,6 +103,32 @@ export default function AIFeedbackPanel({ project }) {
   const [data, setData] = useState(() => readCache(project.id))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // venue_id -> true for venues this project is already in the tracker for.
+  const [trackedIds, setTrackedIds] = useState(() => new Set())
+  const [trackingId, setTrackingId] = useState(null)
+  const [trackError, setTrackError] = useState('')
+
+  useEffect(() => {
+    supabase
+      .from('venue_submissions')
+      .select('venue_id')
+      .eq('project_id', project.id)
+      .then(({ data }) => setTrackedIds(new Set((data || []).map(r => r.venue_id))))
+  }, [project.id])
+
+  async function track(venueId) {
+    setTrackingId(venueId)
+    setTrackError('')
+    const { error: err } = await trackVenue(project.user_id, project.id, venueId)
+    // 23505 = unique violation: already tracked (e.g. from another tab), which is fine.
+    if (err && err.code !== '23505') {
+      setTrackError('Could not add that to your tracker. Try again.')
+    } else {
+      setTrackedIds(prev => new Set(prev).add(venueId))
+      notifySubmissionsChanged()
+    }
+    setTrackingId(null)
+  }
 
   async function run() {
     setLoading(true)
@@ -251,7 +297,10 @@ export default function AIFeedbackPanel({ project }) {
               <h3 className="text-sm font-bold text-white mb-1">Where to submit it</h3>
               <p className="text-xs text-zinc-500 mb-4">
                 Tiers compare each venue's selectivity against how far along your project is.
+                Track one to set a deadline and log the result in your{' '}
+                <Link to="/tracker" className="text-brand-300 hover:underline">tracker</Link>.
               </p>
+              {trackError && <p className="text-xs text-red-300 mb-3">{trackError}</p>}
               <div className="space-y-5">
                 {TIER_ORDER.filter(t => tiered[t]?.length).map(tier => (
                   <div key={tier}>
@@ -262,7 +311,15 @@ export default function AIFeedbackPanel({ project }) {
                       <span className="text-xs text-zinc-500">{TIER_META[tier].hint}</span>
                     </div>
                     <div className="space-y-2">
-                      {tiered[tier].map(v => <VenueRow key={v.id} venue={v} />)}
+                      {tiered[tier].map(v => (
+                        <VenueRow
+                          key={v.id}
+                          venue={v}
+                          tracked={trackedIds.has(v.id)}
+                          busy={trackingId === v.id}
+                          onTrack={() => track(v.id)}
+                        />
+                      ))}
                     </div>
                   </div>
                 ))}
