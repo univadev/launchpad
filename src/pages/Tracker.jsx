@@ -169,6 +169,8 @@ export default function Tracker() {
         </h1>
         <p className="text-sm text-zinc-400 mt-1 mb-6">
           Where you're taking your projects. Accepted and award results show on your profile.
+          Set a deadline and we'll email you a week before and the day before
+          (<Link to="/settings" className="text-brand-300 hover:underline">settings</Link>).
         </p>
 
         {error && (

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { FIELDS_OF_INTEREST, COUNTRIES, normalizeUrl } from '../lib/utils'
 import AdmissionsProfile from '../components/AdmissionsProfile'
-import { Save, Upload, AlertCircle, CheckCircle2, Camera, Trash2, Linkedin, Github, MessageCircle, GraduationCap } from 'lucide-react'
+import { Save, Upload, AlertCircle, CheckCircle2, Camera, Trash2, Linkedin, Github, MessageCircle, GraduationCap, Mail } from 'lucide-react'
 
 const INTEREST_OPTIONS = [
   'Algorithms', 'Machine Learning', 'Web Dev', 'Mobile Dev', 'Robotics',
@@ -38,6 +38,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [reminders, setReminders] = useState(profile?.email_reminders !== false)
+  const [remindersError, setRemindersError] = useState('')
 
   function toggleInterest(interest) {
     setForm(f => ({
@@ -70,6 +72,24 @@ export default function Settings() {
       }, 'image/jpeg', 0.85)
     }
     img.src = url
+  }
+
+  // Saved immediately and separately from the main form, so a database without
+  // migration 009 only breaks this toggle, not the whole profile save.
+  async function toggleReminders() {
+    const next = !reminders
+    setReminders(next)
+    setRemindersError('')
+    const { error: err } = await supabase
+      .from('users')
+      .update({ email_reminders: next })
+      .eq('id', user.id)
+    if (err) {
+      setReminders(!next)
+      setRemindersError('Could not save that setting. Try again.')
+      return
+    }
+    refreshProfile()
   }
 
   async function handleSubmit(e) {
@@ -353,6 +373,31 @@ export default function Settings() {
         </form>
 
         {/* Kept outside <form> so its controls don't trigger the form submit. */}
+        <div className="card p-5 mt-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-white flex items-center gap-2">
+                <Mail size={16} />
+                Deadline emails
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                A reminder a week before and the day before anything in your tracker is due.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={reminders}
+              aria-label="Deadline emails"
+              onClick={toggleReminders}
+              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${reminders ? 'bg-brand-600' : 'bg-zinc-700'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${reminders ? 'translate-x-5' : ''}`} />
+            </button>
+          </div>
+          {remindersError && <p className="text-xs text-red-300 mt-2">{remindersError}</p>}
+        </div>
+
         <div className="card p-5 mt-6">
           <div className="mb-4">
             <h2 className="font-semibold text-white flex items-center gap-2">
