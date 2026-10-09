@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import { candidatesFor, VENUE_BY_ID, tierFor, TIER_META, TIER_ORDER, VENUE_KINDS } from '../lib/venues'
 import { trackVenue, notifySubmissionsChanged } from '../lib/submissions'
 import { formatDate } from '../lib/utils'
+import { postApi } from '../lib/api'
 
 // Cached per project for the browser session so re-opening a project does not
 // spend another API call. "Run again" bypasses it deliberately.
@@ -193,18 +194,14 @@ export default function AIFeedbackPanel({ project }) {
         blurb: v.blurb,
       }))
 
-      const res = await fetch('/api/analyze-project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: project.title,
-          description: project.description,
-          tech_stack: project.tech_stack || [],
-          project_type: project.project_type,
-          impact_metrics: project.impact_metrics || '',
-          link: project.link || '',
-          candidates,
-        }),
+      const res = await postApi('analyze-project', {
+        title: project.title,
+        description: project.description,
+        tech_stack: project.tech_stack || [],
+        project_type: project.project_type,
+        impact_metrics: project.impact_metrics || '',
+        link: project.link || '',
+        candidates,
       })
 
       const payload = await res.json().catch(() => null)

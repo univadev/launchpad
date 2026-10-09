@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { PROJECT_TYPES, TECH_SUGGESTIONS, calculateStreak, safeExternalUrl } from '../lib/utils'
 import { candidatesFor } from '../lib/venues'
+import { postApi } from '../lib/api'
 
 const MAX_IMAGE_SIZE = 800 // px
 const IMAGE_QUALITY = 0.82
@@ -83,20 +84,16 @@ export default function PostModal({ project: existing = null, onClose, onSuccess
     if (!form.title || !form.description) return
     setAiLoading(true)
     try {
-      const res = await fetch('/api/analyze-project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title,
-          description: form.description,
-          tech_stack: form.tech_stack,
-          project_type: form.project_type,
-          impact_metrics: form.impact_metrics,
-          link: form.link,
-          candidates: candidatesFor(form.project_type).map(v => ({
-            id: v.id, name: v.name, kind: v.kind, selectivity: v.selectivity, blurb: v.blurb,
-          })),
-        }),
+      const res = await postApi('analyze-project', {
+        title: form.title,
+        description: form.description,
+        tech_stack: form.tech_stack,
+        project_type: form.project_type,
+        impact_metrics: form.impact_metrics,
+        link: form.link,
+        candidates: candidatesFor(form.project_type).map(v => ({
+          id: v.id, name: v.name, kind: v.kind, selectivity: v.selectivity, blurb: v.blurb,
+        })),
       })
       const data = await res.json().catch(() => null)
       if (!data) throw new Error('Could not reach the feedback service — try `netlify dev`.')
@@ -128,11 +125,7 @@ export default function PostModal({ project: existing = null, onClose, onSuccess
     try {
       // Content moderation
       try {
-        const modRes = await fetch('/api/moderate-content', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: `${form.title} ${form.description}` }),
-        })
+        const modRes = await postApi('moderate-content', { content: `${form.title} ${form.description}` })
         const modData = await modRes.json()
         if (!modData.is_safe) {
           setError('Your post was flagged: ' + (modData.reason || 'Please review your content.'))

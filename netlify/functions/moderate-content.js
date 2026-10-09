@@ -1,3 +1,5 @@
+import { requireUser } from '../lib/requireUser.js'
+
 export const handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) }
@@ -15,6 +17,10 @@ export const handler = async function (event) {
     headers,
     body: JSON.stringify({ is_safe: true, reason: null })
   }
+
+  // Anonymous callers can't post anything (RLS), so there's nothing to
+  // moderate for them — answer without spending a Groq call.
+  if (!(await requireUser(event))) return safeFallback
 
   try {
     const body = JSON.parse(event.body)

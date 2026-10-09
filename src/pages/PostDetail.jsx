@@ -8,6 +8,7 @@ import { ArrowLeft, ExternalLink, MessageSquare, Send, Trash2, Reply, Clock, Ale
 import { recordView } from '../lib/viewTracker'
 import AIFeedbackPanel from '../components/AIFeedbackPanel'
 import PostModal from '../components/PostModal'
+import { postApi } from '../lib/api'
 
 function CommentItem({ comment, depth = 0, onReply, onDelete, currentUserId }) {
   const author = comment.users || {}
@@ -168,11 +169,7 @@ export default function PostDetail() {
     try {
       // Moderate content
       try {
-        const modRes = await fetch('/api/moderate-content', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: commentText }),
-        })
+        const modRes = await postApi('moderate-content', { content: commentText })
         const mod = await modRes.json()
         if (!mod.is_safe) {
           alert('Your comment was flagged: ' + (mod.reason || 'Please review.'))

@@ -1,3 +1,5 @@
+import { requireUser } from '../lib/requireUser.js'
+
 // Groq retired the Llama chat models; gpt-oss-120b is the strongest one now
 // available for this account. Override with GROQ_MODEL if that changes again.
 const MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
@@ -48,6 +50,10 @@ export const handler = async function (event) {
   }
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) }
+  }
+
+  if (!(await requireUser(event))) {
+    return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ error: 'Sign in to get AI feedback.' }) }
   }
 
   try {
