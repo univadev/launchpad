@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { recordView } from '../lib/viewTracker'
 
-export default function ProjectCard({ project, onReactionToggle }) {
+export default function ProjectCard({ project }) {
   const { user } = useAuth()
   const cardRef = useRef(null)
 
@@ -16,8 +16,19 @@ export default function ProjectCard({ project, onReactionToggle }) {
   const commentCount = project.comment_count || 0
   const [viewCount, setViewCount] = useState(project.view_count || 0)
 
-  const totalUpvotes = Object.values(reactionCounts).reduce((a, b) => a + b, 0)
-  const isUpvoted = userReaction !== null
+  // Upvotes are handled here so the card works the same on every page that
+  // renders it (Feed, Discover, Profile) without each page wiring a handler.
+  const [isUpvoted, setIsUpvoted] = useState(userReaction !== null)
+  const [totalUpvotes, setTotalUpvotes] = useState(
+    Object.values(reactionCounts).reduce((a, b) => a + b, 0)
+  )
+  const [voting, setVoting] = useState(false)
+
+  // Parent pages refetch (e.g. Feed refresh); follow their data when it changes.
+  useEffect(() => {
+    setIsUpvoted(userReaction !== null)
+    setTotalUpvotes(Object.values(reactionCounts).reduce((a, b) => a + b, 0))
+  }, [project])
 
   useEffect(() => {
     const el = cardRef.current
@@ -41,9 +52,26 @@ export default function ProjectCard({ project, onReactionToggle }) {
     return () => { observer.disconnect(); clearTimeout(timer) }
   }, [project.id])
 
-  async function handleReaction(type) {
-    if (!user) return
-    onReactionToggle?.(project.id, type, userReaction)
+  async function handleReaction() {
+    if (!user || voting) return
+    const next = !isUpvoted
+    setVoting(true)
+    setIsUpvoted(next)
+    setTotalUpvotes(c => Math.max(0, c + (next ? 1 : -1)))
+
+    const { error } = next
+      ? await supabase.from('reactions').upsert(
+          { project_id: project.id, user_id: user.id, reaction_type: 'fire' },
+          { onConflict: 'project_id,user_id' }
+        )
+      : await supabase.from('reactions').delete()
+          .eq('project_id', project.id).eq('user_id', user.id)
+
+    if (error) {
+      setIsUpvoted(!next)
+      setTotalUpvotes(c => Math.max(0, c + (next ? -1 : 1)))
+    }
+    setVoting(false)
   }
 
   return (
@@ -129,7 +157,7 @@ export default function ProjectCard({ project, onReactionToggle }) {
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <div className="flex items-center gap-1">
             <button
-              onClick={() => handleReaction('fire')}
+              onClick={handleReaction}
               title="Upvote"
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 isUpvoted

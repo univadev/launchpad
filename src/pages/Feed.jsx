@@ -83,38 +83,6 @@ export default function Feed() {
     fetchProjects(true)
   }, [user])
 
-  async function handleReactionToggle(projectId, type, currentReaction) {
-    if (!user) return
-
-    // Optimistic update
-    setProjects(prev => prev.map(p => {
-      if (p.id !== projectId) return p
-      const counts = { ...p.reaction_counts }
-
-      if (currentReaction === type) {
-        // Remove reaction
-        counts[type] = Math.max(0, (counts[type] || 0) - 1)
-        return { ...p, reaction_counts: counts, user_reaction: null }
-      } else {
-        // Change/add reaction
-        if (currentReaction) counts[currentReaction] = Math.max(0, (counts[currentReaction] || 0) - 1)
-        counts[type] = (counts[type] || 0) + 1
-        return { ...p, reaction_counts: counts, user_reaction: type }
-      }
-    }))
-
-    // Real update
-    if (currentReaction === type) {
-      await supabase.from('reactions').delete()
-        .eq('project_id', projectId).eq('user_id', user.id)
-    } else {
-      await supabase.from('reactions').upsert(
-        { project_id: projectId, user_id: user.id, reaction_type: type },
-        { onConflict: 'project_id,user_id' }
-      )
-    }
-  }
-
   function handlePostSuccess(newProject) {
     fetchProjects(true)
   }
@@ -187,11 +155,7 @@ export default function Feed() {
         ) : (
           <div className="flex flex-col gap-4">
             {projects.map(project => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onReactionToggle={handleReactionToggle}
-              />
+              <ProjectCard key={project.id} project={project} />
             ))}
 
             {hasMore && (
