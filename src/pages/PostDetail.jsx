@@ -4,9 +4,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { timeAgo, formatDate, safeExternalUrl } from '../lib/utils'
 import ReactMarkdown from 'react-markdown'
-import { ArrowLeft, ExternalLink, MessageSquare, Send, Trash2, Reply, Clock, AlertCircle, ThumbsUp, X, Eye } from 'lucide-react'
+import { ArrowLeft, ExternalLink, MessageSquare, Send, Trash2, Reply, Clock, AlertCircle, ThumbsUp, X, Eye, Pencil } from 'lucide-react'
 import { recordView } from '../lib/viewTracker'
 import AIFeedbackPanel from '../components/AIFeedbackPanel'
+import PostModal from '../components/PostModal'
 
 function CommentItem({ comment, depth = 0, onReply, onDelete, currentUserId }) {
   const author = comment.users || {}
@@ -78,6 +79,8 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true)
   const [commentLoading, setCommentLoading] = useState(false)
   const [error, setError] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchProject()
@@ -200,6 +203,18 @@ export default function PostDetail() {
     }
   }
 
+  async function handleDeleteProject() {
+    if (!confirm(`Delete "${project.title}"? This removes its comments and upvotes too, and can't be undone.`)) return
+    setDeleting(true)
+    const { error: delError } = await supabase.from('projects').delete().eq('id', project.id)
+    setDeleting(false)
+    if (delError) {
+      alert('Could not delete this project: ' + delError.message)
+      return
+    }
+    navigate(`/@${project.users?.username || ''}`, { replace: true })
+  }
+
   async function handleDeleteComment(commentId) {
     if (!confirm('Delete this comment?')) return
     await supabase.from('comments').delete().eq('id', commentId).eq('user_id', user.id)
@@ -258,7 +273,28 @@ export default function PostDetail() {
                   <p className="text-sm text-gray-500">@{author?.username} · {formatDate(project.created_at)}</p>
                 </div>
               </Link>
-              <span className="badge bg-brand-900/50 text-brand-300 ">{project.project_type}</span>
+              <div className="flex items-center gap-1">
+                <span className="badge bg-brand-900/50 text-brand-300 ">{project.project_type}</span>
+                {isOwner && (
+                  <>
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                      title="Edit project"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={handleDeleteProject}
+                      disabled={deleting}
+                      className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-40"
+                      title="Delete project"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Title */}
@@ -317,6 +353,14 @@ export default function PostDetail() {
             </div>
           </div>
         </div>
+
+        {editing && (
+          <PostModal
+            project={project}
+            onClose={() => setEditing(false)}
+            onSuccess={updated => setProject(p => ({ ...p, ...updated }))}
+          />
+        )}
 
         {/* AI feedback — owner only, so we don't spend a call for every viewer */}
         {isOwner && <AIFeedbackPanel project={project} />}

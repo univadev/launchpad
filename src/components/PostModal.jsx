@@ -29,23 +29,25 @@ async function compressImage(file) {
   })
 }
 
-export default function PostModal({ onClose, onSuccess }) {
+// Pass `project` to edit an existing post; omit it to create a new one.
+export default function PostModal({ project: existing = null, onClose, onSuccess }) {
   const { user, profile, refreshProfile } = useAuth()
   const fileRef = useRef()
+  const isEdit = !!existing
 
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    project_type: '',
-    tech_stack: [],
-    link: '',
-    impact_metrics: '',
-    collaborator_ids: [],
+    title: existing?.title || '',
+    description: existing?.description || '',
+    project_type: existing?.project_type || '',
+    tech_stack: existing?.tech_stack || [],
+    link: existing?.link || '',
+    impact_metrics: existing?.impact_metrics || '',
+    collaborator_ids: existing?.collaborator_ids || [],
   })
 
   const [techInput, setTechInput] = useState('')
   const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
+  const [imagePreview, setImagePreview] = useState(existing?.image_url || null)
   const [showAI, setShowAI] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
@@ -141,8 +143,9 @@ export default function PostModal({ onClose, onSuccess }) {
         // If moderation fails, proceed normally
       }
 
-      // Upload image
-      let imageUrl = null
+      // Upload image. When editing, keep the current image unless it was removed
+      // (preview cleared) or replaced (new file picked).
+      let imageUrl = isEdit && imagePreview ? existing.image_url : null
       if (imageFile) {
         const fileName = `${user.id}/${Date.now()}.jpg`
         const { error: uploadError, data: uploadData } = await supabase.storage
@@ -157,20 +160,33 @@ export default function PostModal({ onClose, onSuccess }) {
         }
       }
 
-      // Insert project
+      const fields = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        project_type: form.project_type,
+        tech_stack: form.tech_stack,
+        link,
+        image_url: imageUrl,
+        impact_metrics: form.impact_metrics.trim() || null,
+        collaborator_ids: form.collaborator_ids,
+      }
+
+      if (isEdit) {
+        const { data: updated, error: updateError } = await supabase
+          .from('projects')
+          .update(fields)
+          .eq('id', existing.id)
+          .select()
+          .single()
+        if (updateError) throw updateError
+        onSuccess?.(updated)
+        onClose()
+        return
+      }
+
       const { data: project, error: insertError } = await supabase
         .from('projects')
-        .insert({
-          user_id: user.id,
-          title: form.title.trim(),
-          description: form.description.trim(),
-          project_type: form.project_type,
-          tech_stack: form.tech_stack,
-          link,
-          image_url: imageUrl,
-          impact_metrics: form.impact_metrics.trim() || null,
-          collaborator_ids: form.collaborator_ids,
-        })
+        .insert({ user_id: user.id, ...fields })
         .select()
         .single()
 
@@ -201,7 +217,7 @@ export default function PostModal({ onClose, onSuccess }) {
       <div className="w-full max-w-2xl bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl my-4 animate-slide-up">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-          <h2 className="text-lg font-bold text-white">Share a project</h2>
+          <h2 className="text-lg font-bold text-white">{isEdit ? 'Edit project' : 'Share a project'}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
             <X size={18} />
           </button>
@@ -454,12 +470,12 @@ export default function PostModal({ onClose, onSuccess }) {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin-fast" />
-                  Publishing...
+                  {isEdit ? 'Saving...' : 'Publishing...'}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Check size={16} />
-                  Publish project
+                  {isEdit ? 'Save changes' : 'Publish project'}
                 </span>
               )}
             </button>
