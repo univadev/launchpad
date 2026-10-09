@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { timeAgo, formatDate, safeExternalUrl } from '../lib/utils'
@@ -8,6 +8,7 @@ import { ArrowLeft, ExternalLink, MessageSquare, Send, Trash2, Reply, Clock, Ale
 import { recordView } from '../lib/viewTracker'
 import AIFeedbackPanel from '../components/AIFeedbackPanel'
 import PostModal from '../components/PostModal'
+import TeammatesPanel from '../components/TeammatesPanel'
 import { postApi } from '../lib/api'
 
 function CommentItem({ comment, depth = 0, onReply, onDelete, currentUserId }) {
@@ -69,6 +70,7 @@ export default function PostDetail() {
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [project, setProject] = useState(null)
   const [comments, setComments] = useState([])
@@ -87,6 +89,13 @@ export default function PostDetail() {
     fetchProject()
     fetchComments()
   }, [id])
+
+  // Links like /post/:id#teammates land before the project has loaded, so
+  // scroll to the anchor once it's rendered.
+  useEffect(() => {
+    if (!project?.id || !location.hash) return
+    document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth' })
+  }, [project?.id, location.hash])
 
   useEffect(() => {
     if (!project?.id) return
@@ -358,6 +367,8 @@ export default function PostDetail() {
             onSuccess={updated => setProject(p => ({ ...p, ...updated }))}
           />
         )}
+
+        <TeammatesPanel project={project} user={user} isOwner={isOwner} />
 
         {/* AI feedback — owner only, so we don't spend a call for every viewer */}
         {isOwner && <AIFeedbackPanel project={project} />}

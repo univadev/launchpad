@@ -113,6 +113,20 @@ export const PROJECT_TYPES = [
   "Other",
 ];
 
+// Roles a project can be looking for (teammate matching, migration 013).
+export const COLLAB_ROLES = [
+  "Frontend dev",
+  "Backend dev",
+  "Mobile dev",
+  "ML / data",
+  "Hardware",
+  "Designer",
+  "Researcher",
+  "Writer",
+  "Marketing",
+  "Business",
+];
+
 // Popular tech stack suggestions
 export const TECH_SUGGESTIONS = [
   "React",

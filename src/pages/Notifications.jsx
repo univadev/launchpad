@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { timeAgo } from '../lib/utils'
-import { Bell, CheckCheck, MessageSquare, Zap, Star, UserPlus, UserCheck, X } from 'lucide-react'
+import { Bell, CheckCheck, MessageSquare, Zap, Star, UserPlus, UserCheck, X, Handshake } from 'lucide-react'
 
 const NOTIF_ICONS = {
   reaction: { icon: Star, color: 'text-yellow-400', bg: 'bg-yellow-900/20' },
@@ -11,6 +11,7 @@ const NOTIF_ICONS = {
   mention: { icon: Zap, color: 'text-accent-400', bg: 'bg-accent-900/20' },
   connection_request: { icon: UserPlus, color: 'text-brand-400', bg: 'bg-brand-900/20' },
   connection_accepted: { icon: UserCheck, color: 'text-green-400', bg: 'bg-green-900/20' },
+  collab_interest: { icon: Handshake, color: 'text-accent-500', bg: 'bg-accent-500/10' },
 }
 
 function NotifItem({ notif, onRead, onRespond, respondingId }) {
@@ -33,6 +34,10 @@ function NotifItem({ notif, onRead, onRespond, respondingId }) {
       const name = content.requester_name || content.requester_username || 'Someone'
       return `${name} wants to connect with you`
     }
+    if (notif.type === 'collab_interest') {
+      const note = content.message ? `: "${content.message}"` : ''
+      return `${actor || 'Someone'} wants to join "${content.project_title || 'your project'}" as ${content.role}${note}`
+    }
     if (notif.type === 'connection_accepted') {
       const name = content.recipient_name || content.recipient_username
       return name ? `${name} accepted your connection request` : `Your connection request was accepted`
@@ -42,8 +47,11 @@ function NotifItem({ notif, onRead, onRespond, respondingId }) {
 
   const profileUsername = notif.type === 'connection_accepted'
     ? content.recipient_username
-    : content.requester_username
-  const link = content.project_id
+    : notif.type === 'collab_interest'
+      ? content.actor_username
+      : content.requester_username
+  // Interest is about the person, so link to their profile to connect.
+  const link = notif.type !== 'collab_interest' && content.project_id
     ? `/post/${content.project_id}`
     : profileUsername
       ? `/@${profileUsername}`

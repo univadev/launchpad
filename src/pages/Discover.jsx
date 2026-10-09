@@ -102,7 +102,7 @@ export default function Discover() {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('Projects')
   const [search, setSearch] = useState('')
-  const [filters, setFilters] = useState({ field: '', projectType: '', country: '' })
+  const [filters, setFilters] = useState({ field: '', projectType: '', country: '', seeking: false })
   const [showFilters, setShowFilters] = useState(false)
 
   const [projects, setProjects] = useState([])
@@ -144,6 +144,7 @@ export default function Discover() {
       .limit(30)
 
     if (filters.projectType) query = query.eq('project_type', filters.projectType)
+    if (filters.seeking) query = query.neq('looking_for', '{}')
     if (debouncedSearch) query = query.ilike('title', `%${debouncedSearch}%`)
 
     const { data } = await query
@@ -285,10 +286,19 @@ export default function Discover() {
                 {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+            <label className="sm:col-span-3 flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.seeking}
+                onChange={e => setFilters(f => ({ ...f, seeking: e.target.checked }))}
+                className="accent-brand-500"
+              />
+              Only projects looking for teammates
+            </label>
             {activeFiltersCount > 0 && (
               <div className="sm:col-span-3 flex justify-end">
                 <button
-                  onClick={() => setFilters({ field: '', projectType: '', country: '' })}
+                  onClick={() => setFilters({ field: '', projectType: '', country: '', seeking: false })}
                   className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
                 >
                   <X size={12} />Clear all filters

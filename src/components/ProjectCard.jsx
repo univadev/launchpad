@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageSquare, ExternalLink, Clock, ThumbsUp, Eye } from 'lucide-react'
+import { MessageSquare, ExternalLink, Clock, ThumbsUp, Eye, Handshake } from 'lucide-react'
 import { timeAgo, safeExternalUrl } from '../lib/utils'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -139,6 +139,16 @@ export default function ProjectCard({ project }) {
           <div className="text-xs text-brand-400 font-medium mb-3 bg-brand-500/10 rounded-lg px-3 py-2">
             {project.impact_metrics}
           </div>
+        )}
+
+        {project.looking_for?.length > 0 && (
+          <Link
+            to={`/post/${project.id}#teammates`}
+            className="flex items-center gap-1.5 text-xs text-accent-500 mb-3 hover:underline"
+          >
+            <Handshake size={13} />
+            Looking for {project.looking_for.join(', ')}
+          </Link>
         )}
 
         {/* Tech stack */}

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { X, Plus, Sparkles, Upload, Image, ChevronDown, ChevronUp, AlertCircle, Check, Lightbulb, Target } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { PROJECT_TYPES, TECH_SUGGESTIONS, calculateStreak, safeExternalUrl } from '../lib/utils'
+import { PROJECT_TYPES, TECH_SUGGESTIONS, COLLAB_ROLES, calculateStreak, safeExternalUrl } from '../lib/utils'
 import { candidatesFor } from '../lib/venues'
 import { postApi } from '../lib/api'
 
@@ -44,6 +44,7 @@ export default function PostModal({ project: existing = null, onClose, onSuccess
     link: existing?.link || '',
     impact_metrics: existing?.impact_metrics || '',
     collaborator_ids: existing?.collaborator_ids || [],
+    looking_for: existing?.looking_for || [],
   })
 
   const [techInput, setTechInput] = useState('')
@@ -66,6 +67,15 @@ export default function PostModal({ project: existing = null, onClose, onSuccess
       setForm(f => ({ ...f, tech_stack: [...f.tech_stack, tech] }))
     }
     setTechInput('')
+  }
+
+  function toggleRole(role) {
+    setForm(f => ({
+      ...f,
+      looking_for: f.looking_for.includes(role)
+        ? f.looking_for.filter(r => r !== role)
+        : f.looking_for.length < 4 ? [...f.looking_for, role] : f.looking_for,
+    }))
   }
 
   function removeTech(t) {
@@ -162,6 +172,11 @@ export default function PostModal({ project: existing = null, onClose, onSuccess
         image_url: imageUrl,
         impact_metrics: form.impact_metrics.trim() || null,
         collaborator_ids: form.collaborator_ids,
+      }
+      // Only send looking_for when it's in use, so posting still works on a
+      // database that hasn't run migration 013 yet.
+      if (form.looking_for.length || existing?.looking_for?.length) {
+        fields.looking_for = form.looking_for
       }
 
       if (isEdit) {
@@ -362,6 +377,32 @@ export default function PostModal({ project: existing = null, onClose, onSuccess
                 value={form.impact_metrics}
                 onChange={e => setForm(f => ({ ...f, impact_metrics: e.target.value }))}
               />
+            </div>
+          </div>
+
+          {/* Teammates */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              Looking for teammates? <span className="text-gray-600 font-normal">(optional, up to 4)</span>
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {COLLAB_ROLES.map(role => {
+                const on = form.looking_for.includes(role)
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => toggleRole(role)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      on
+                        ? 'bg-brand-600/20 border-brand-500/50 text-brand-300'
+                        : 'border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300'
+                    }`}
+                  >
+                    {role}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
