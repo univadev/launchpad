@@ -15,6 +15,26 @@ const INTEREST_OPTIONS = [
   'Quantum Computing', 'Cybersecurity', 'Data Science'
 ]
 
+// Usernames are derived from the email, so two students with the same email
+// prefix (john@gmail.com, john@school.edu) would collide on the unique
+// username and the second could never finish onboarding. Append digits until
+// we find a free one; they can change it later in Settings.
+async function pickAvailableUsername(base, userId) {
+  const root = (base.replace(/[^a-z0-9_]/gi, '').toLowerCase() || 'builder').slice(0, 20)
+  let candidate = root.length >= 3 ? root : `${root}builder`
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', candidate)
+      .neq('id', userId)
+      .maybeSingle()
+    if (!data) return candidate
+    candidate = `${root.slice(0, 16)}${Math.floor(1000 + Math.random() * 9000)}`
+  }
+  return candidate
+}
+
 export default function Onboarding() {
   const { user, refreshProfile } = useAuth()
   const navigate = useNavigate()
@@ -70,7 +90,7 @@ export default function Onboarding() {
     setError('')
 
     try {
-      const cleanUsername = username.replace(/[^a-z0-9_]/gi, '').toLowerCase() || 'builder'
+      const cleanUsername = await pickAvailableUsername(username, user.id)
 
       const profileData = {
         id: user.id,

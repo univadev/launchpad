@@ -46,7 +46,7 @@ function NotifItem({ notif, onRead, onRespond, respondingId }) {
   const link = content.project_id
     ? `/post/${content.project_id}`
     : profileUsername
-      ? `/${profileUsername}`
+      ? `/@${profileUsername}`
       : '#'
 
   const isPendingRequest = notif.type === 'connection_request' && content.connection_id && !content.resolved
